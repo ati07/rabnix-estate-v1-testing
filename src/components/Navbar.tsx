@@ -7,9 +7,8 @@ import {
   MapPin, 
   Heart, 
   Sparkles, 
-  PlusCircle, 
-  Calculator, 
-  TrendingUp, 
+  PlusCircle,
+  TrendingUp,
   ChevronDown, 
   Search, 
   Phone, 
@@ -38,7 +37,6 @@ interface NavbarProps {
   shortlistCount: number;
   onOpenShortlist: () => void;
   onOpenPostProperty: () => void;
-  onOpenEmiCalculator: () => void;
   onOpenAiValuation: () => void;
   onOpenAiGenie: () => void;
   onOpenAuthModal?: (mode?: 'signin' | 'signup') => void;
@@ -52,7 +50,6 @@ export function Navbar({
   shortlistCount,
   onOpenShortlist,
   onOpenPostProperty,
-  onOpenEmiCalculator,
   onOpenAiValuation,
   onOpenAiGenie,
   onOpenAuthModal
@@ -92,15 +89,6 @@ export function Navbar({
               <TrendingUp className="w-3.5 h-3.5 text-[#22C39A]" />
               <span>AI Property Valuation</span>
             </button>
-            <button 
-              id="nav-emi-calc-top-btn"
-              onClick={onOpenEmiCalculator}
-              className="hover:text-[#22C39A] flex items-center gap-1 transition-colors cursor-pointer hidden sm:flex"
-            >
-              <Calculator className="w-3.5 h-3.5 text-amber-400" />
-              <span>EMI Calculator</span>
-            </button>
-            
             {/* Top Bar Auth Quick Link */}
             {isAuthenticated && user ? (
               <div className="flex items-center gap-3 text-slate-200 hidden md:flex">
@@ -533,16 +521,6 @@ export function Navbar({
               }`}
             >
               Plots & Lands
-            </button>
-            <button
-              onClick={() => {
-                onOpenEmiCalculator();
-                setMobileMenuOpen(false);
-              }}
-              className="p-2.5 rounded-lg text-left text-xs font-bold uppercase tracking-wider bg-[#F8FAFC] text-[#172033] border border-[#E2E8F0] flex items-center justify-between"
-            >
-              <span>EMI Calculator</span>
-              <Calculator className="w-4 h-4 text-amber-500" />
             </button>
           </div>
 

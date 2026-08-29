@@ -140,10 +140,10 @@ export function HeroSearch({
   );
 
   return (
-    <section className="relative w-full bg-[#0F2A43] text-white border-b border-[#163b5c] overflow-hidden">
-      
+    <section className="relative z-20 w-full bg-[#0F2A43] text-white border-b border-[#163b5c]">
+
       {/* Subtle Background Geometric Accent Pattern */}
-      <div className="absolute inset-0 opacity-10 pointer-events-none">
+      <div className="absolute inset-0 opacity-10 pointer-events-none overflow-hidden">
         <div className="absolute -right-24 -top-24 w-96 h-96 rounded-full border-[32px] border-white/20" />
         <div className="absolute left-1/3 -bottom-24 w-80 h-80 rounded-full border-[24px] border-[#18A67D]/30" />
       </div>
@@ -165,10 +165,10 @@ export function HeroSearch({
         </div>
 
         {/* Main Search Tabs & Form Container */}
-        <div className="bg-white text-[#172033] rounded-2xl shadow-2xl border border-[#E2E8F0] overflow-hidden">
-          
+        <div className="bg-white text-[#172033] rounded-2xl shadow-2xl border border-[#E2E8F0]">
+
           {/* Navigation Category Tabs */}
-          <div className="flex items-center justify-between border-b border-[#E2E8F0] bg-[#F8FAFC] px-3 sm:px-6 overflow-x-auto scrollbar-none">
+          <div className="flex items-center justify-between border-b border-[#E2E8F0] bg-[#F8FAFC] px-3 sm:px-6 overflow-x-auto scrollbar-none rounded-t-2xl">
             <div className="flex items-center gap-1 sm:gap-3 py-1">
               {[
                 { id: 'buy', label: 'Buy', icon: Home },
@@ -400,7 +400,7 @@ export function HeroSearch({
               </div>
 
               {/* 4. Bedrooms (BHK) Filter */}
-              <div className="md:col-span-1.5 relative">
+              <div className="md:col-span-2 relative">
                 <div 
                   id="hero-bhk-trigger"
                   onClick={() => {
@@ -478,7 +478,7 @@ export function HeroSearch({
           </div>
 
           {/* Quick Filter Tag Chips Bar */}
-          <div className="bg-[#F8FAFC] border-t border-[#E2E8F0] px-4 py-2.5 flex flex-wrap items-center gap-2 text-xs">
+          <div className="bg-[#F8FAFC] border-t border-[#E2E8F0] px-4 py-2.5 flex flex-wrap items-center gap-2 text-xs rounded-b-2xl">
             <span className="text-[#64748B] font-semibold text-[11px]">Quick Filters:</span>
             
             <button
@@ -540,12 +540,11 @@ export function HeroSearch({
         </div>
 
         {/* Value Proposition Trust Badges */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
           {[
             { title: '100% Verified Listings', desc: 'RERA approved with physical verification' },
             { title: 'Direct Owner Connect', desc: 'Zero brokerage on 10,000+ homes' },
-            { title: 'Rabnix AI Valuation', desc: 'Real-time price & rental estimation' },
-            { title: 'Lowest Home Loan Rates', desc: 'Compare SBI, HDFC & ICICI from 8.35%' }
+            { title: 'Rabnix AI Valuation', desc: 'Real-time price & rental estimation' }
           ].map((badge, idx) => (
             <div key={idx} className="flex items-center gap-2.5 bg-[#163b5c]/60 backdrop-blur-xs p-2.5 rounded-xl border border-white/10">
               <CheckCircle2 className="w-4 h-4 text-[#22C39A] shrink-0" />

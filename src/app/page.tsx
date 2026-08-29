@@ -23,7 +23,6 @@ import { CITIES_DATA } from '@/lib/realEstateData';
 import { detectNearestCity } from '@/lib/geoCity';
 import { useProperties } from '@/lib/propertyContext';
 import { useAuth } from '@/lib/authContext';
-import Link from 'next/link';
 import { Navbar } from '@/components/Navbar';
 import { HeroSearch } from '@/components/HeroSearch';
 import { PropertyCard } from '@/components/PropertyCard';
@@ -256,10 +255,6 @@ export default function HomeView() {
         shortlistCount={shortlistIds.length}
         onOpenShortlist={() => setIsShortlistDrawerOpen(true)}
         onOpenPostProperty={() => setIsPostPropertyOpen(true)}
-        onOpenEmiCalculator={() => {
-          setEmiInitialPrice(5000000);
-          setIsEmiCalculatorOpen(true);
-        }}
         onOpenAiValuation={() => setIsAiValuationOpen(true)}
         onOpenAiGenie={() => {
           setGenieContextProperty(null);
@@ -270,53 +265,6 @@ export default function HomeView() {
           setIsAuthModalOpen(true);
         }}
       />
-
-      {/* Direct Page Navigation Quick-Bar */}
-      <div className="bg-white border-b border-[#E2E8F0] py-2 px-4 sm:px-8">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-1.5 text-[#64748B] font-bold">
-            <span className="uppercase text-[10px] tracking-wider text-[#0F2A43]">Explore Portals:</span>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href="/properties"
-              className="px-3 py-1 bg-[#F8FAFC] hover:bg-[#E7F6F1] text-[#0F2A43] hover:text-[#0E7C5D] rounded-lg border border-[#E2E8F0] font-bold transition-colors"
-            >
-              Browse All Listings
-            </Link>
-
-            <Link
-              href="/post-property"
-              className="px-3 py-1 bg-[#E7F6F1] hover:bg-[#d0f0e6] text-[#0E7C5D] rounded-lg border border-[#18A67D]/30 font-bold transition-colors"
-            >
-              + Post Property Free
-            </Link>
-
-            <Link
-              href="/dashboard"
-              className="px-3 py-1 bg-[#F8FAFC] hover:bg-[#F1F5F9] text-[#0F2A43] rounded-lg border border-[#E2E8F0] font-bold transition-colors"
-            >
-              User Dashboard
-            </Link>
-
-            <Link
-              href="/admin"
-              className="px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-lg border border-amber-300 font-bold transition-colors flex items-center gap-1"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-amber-700" />
-              <span>Admin Verification (Approve/Reject)</span>
-            </Link>
-
-            <Link
-              href="/auth"
-              className="px-3 py-1 bg-[#0F2A43] text-white hover:bg-[#163b5c] rounded-lg font-bold transition-colors"
-            >
-              Sign In / Register
-            </Link>
-          </div>
-        </div>
-      </div>
 
       {/* 2. HERO SEARCH MODULE */}
       <HeroSearch
