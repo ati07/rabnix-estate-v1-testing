@@ -1,0 +1,7 @@
+{
+  "name": "Rabnix Estate",
+  "description": "Comprehensive real estate platform by Rabnix Estate for buying, renting, commercial properties, PG/co-living, new projects, and AI property valuation across top Indian cities.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
