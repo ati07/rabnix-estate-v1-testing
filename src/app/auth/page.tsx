@@ -19,7 +19,7 @@ import { AuthForm } from '@/components/AuthForm';
 
 function AuthPageContent() {
   const searchParams = useSearchParams();
-  const initialMode = searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
+  const initialMode = searchParams?.get('mode') === 'signup' ? 'signup' : 'signin';
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-between">
