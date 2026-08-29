@@ -1,0 +1,1962 @@
+'use client';
+
+import React, { useState, useMemo } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { 
+  ShieldCheck, 
+  CheckCircle2, 
+  XCircle, 
+  Clock, 
+  AlertTriangle, 
+  Eye, 
+  Trash2, 
+  Building2, 
+  UserCheck, 
+  Users, 
+  Search, 
+  Filter, 
+  Sparkles, 
+  Layers, 
+  MapPin, 
+  ArrowLeft, 
+  FileText, 
+  Check, 
+  X, 
+  RotateCcw,
+  IndianRupee,
+  Activity,
+  ArrowUpRight,
+  UserX,
+  TrendingUp,
+  BarChart3,
+  PieChart as PieIcon,
+  ShieldAlert,
+  SlidersHorizontal,
+  Mail,
+  Phone,
+  Calendar,
+  Lock,
+  Unlock,
+  AlertCircle,
+  Download,
+  RefreshCw,
+  ExternalLink,
+  MessageSquare,
+  BadgeCheck,
+  CheckSquare,
+  LayoutDashboard,
+  Menu,
+  Shield,
+  Settings
+} from 'lucide-react';
+import { useAuth, DEMO_USERS } from '@/lib/authContext';
+import { useProperties } from '@/lib/propertyContext';
+import { Property, VerificationStatus, UserRole, UserProfile, SystemActivityLog } from '@/lib/types';
+import {
+  AdminActivityTrendChart,
+  AdminUserBreakdownPieChart,
+  AdminModerationStatusChart,
+  AdminCityDistributionBarChart
+} from '@/components/DashboardCharts';
+
+export default function AdminPortalPage() {
+  const router = useRouter();
+  const { 
+    user, 
+    users, 
+    activityLogs, 
+    toggleBlockUser, 
+    deleteUser, 
+    quickDemoLogin, 
+    logActivity, 
+    clearActivityLogs 
+  } = useAuth();
+  
+  const { 
+    properties, 
+    inquiries,
+    updateVerificationStatus, 
+    deleteProperty, 
+    resetToDefaultData 
+  } = useProperties();
+
+  // Navigation Tabs in Admin Suite
+  const [activeTab, setActiveTab] = useState<'overview' | 'moderation' | 'users' | 'activity' | 'trends' | 'settings'>('overview');
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // Moderation Filters
+  const [modFilterStatus, setModFilterStatus] = useState<VerificationStatus | 'all'>('all');
+  const [modSearchQuery, setModSearchQuery] = useState('');
+  const [selectedPropertyModal, setSelectedPropertyModal] = useState<Property | null>(null);
+  const [rejectionModalProperty, setRejectionModalProperty] = useState<Property | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('State RERA certificate could not be verified on the official real estate regulatory portal.');
+
+  // User Management Filters
+  const [userRoleFilter, setUserRoleFilter] = useState<UserRole | 'all'>('all');
+  const [userStatusFilter, setUserStatusFilter] = useState<'all' | 'active' | 'blocked'>('all');
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [blockUserModalTarget, setBlockUserModalTarget] = useState<UserProfile | null>(null);
+  const [blockCustomReason, setBlockCustomReason] = useState('Multiple policy violations or duplicate spam listings reported.');
+
+  // Activity Stream Filters
+  const [activityFilterAction, setActivityFilterAction] = useState<string>('all');
+  const [activitySearchQuery, setActivitySearchQuery] = useState('');
+
+  // Toast / Banner Notifications
+  const [actionSuccessBanner, setActionSuccessBanner] = useState<string | null>(null);
+
+  const showBanner = (msg: string) => {
+    setActionSuccessBanner(msg);
+    setTimeout(() => setActionSuccessBanner(null), 4500);
+  };
+
+  // ----------------------------------------------------
+  // METRICS & COMPUTATIONS
+  // ----------------------------------------------------
+  const totalListings = properties.length;
+  const pendingCount = properties.filter((p) => p.verificationStatus === 'pending').length;
+  const underReviewCount = properties.filter((p) => p.verificationStatus === 'under_review').length;
+  const approvedCount = properties.filter((p) => p.verificationStatus === 'approved' || (!p.verificationStatus && p.isVerified)).length;
+  const rejectedCount = properties.filter((p) => p.verificationStatus === 'rejected').length;
+
+  const totalUsersCount = users.length;
+  const blockedUsersCount = users.filter((u) => u.isBlocked).length;
+  const activeUsersCount = totalUsersCount - blockedUsersCount;
+  const agentsBuildersCount = users.filter((u) => u.role === 'agent' || u.role === 'builder').length;
+
+  // Filtered Properties for Moderation
+  const filteredProperties = useMemo(() => {
+    return properties.filter((p) => {
+      if (modFilterStatus !== 'all') {
+        const pStatus = p.verificationStatus || (p.isVerified ? 'approved' : 'pending');
+        if (pStatus !== modFilterStatus) return false;
+      }
+      if (modSearchQuery.trim()) {
+        const q = modSearchQuery.toLowerCase();
+        return (
+          p.title.toLowerCase().includes(q) ||
+          p.locality.toLowerCase().includes(q) ||
+          p.city.toLowerCase().includes(q) ||
+          (p.reraId && p.reraId.toLowerCase().includes(q)) ||
+          p.postedBy.name.toLowerCase().includes(q)
+        );
+      }
+      return true;
+    });
+  }, [properties, modFilterStatus, modSearchQuery]);
+
+  // Filtered Users
+  const filteredUsers = useMemo(() => {
+    return users.filter((u) => {
+      if (userRoleFilter !== 'all' && u.role !== userRoleFilter) return false;
+      if (userStatusFilter === 'active' && u.isBlocked) return false;
+      if (userStatusFilter === 'blocked' && !u.isBlocked) return false;
+      if (userSearchQuery.trim()) {
+        const q = userSearchQuery.toLowerCase();
+        return (
+          u.name.toLowerCase().includes(q) ||
+          u.email.toLowerCase().includes(q) ||
+          u.phone.toLowerCase().includes(q) ||
+          (u.companyName && u.companyName.toLowerCase().includes(q)) ||
+          (u.reraNumber && u.reraNumber.toLowerCase().includes(q)) ||
+          (u.city && u.city.toLowerCase().includes(q))
+        );
+      }
+      return true;
+    });
+  }, [users, userRoleFilter, userStatusFilter, userSearchQuery]);
+
+  // Filtered Activity Logs
+  const filteredLogs = useMemo(() => {
+    return activityLogs.filter((log) => {
+      if (activityFilterAction !== 'all' && !log.action.includes(activityFilterAction)) return false;
+      if (activitySearchQuery.trim()) {
+        const q = activitySearchQuery.toLowerCase();
+        return (
+          log.actorName.toLowerCase().includes(q) ||
+          log.details.toLowerCase().includes(q) ||
+          (log.targetTitle && log.targetTitle.toLowerCase().includes(q))
+        );
+      }
+      return true;
+    });
+  }, [activityLogs, activityFilterAction, activitySearchQuery]);
+
+  // Chart Data Preparation
+  const moderationDonutData = [
+    { name: 'Approved (Green Seal)', value: approvedCount || 6 },
+    { name: 'Under Review', value: underReviewCount || 2 },
+    { name: 'Pending Review', value: pendingCount || 2 },
+    { name: 'Rejected', value: rejectedCount || 1 }
+  ];
+
+  const userDistributionData = [
+    { name: 'Buyers', value: users.filter((u) => u.role === 'buyer').length || 3 },
+    { name: 'Individual Owners', value: users.filter((u) => u.role === 'owner').length || 2 },
+    { name: 'RERA Agents', value: users.filter((u) => u.role === 'agent').length || 3 },
+    { name: 'Builders / Developers', value: users.filter((u) => u.role === 'builder').length || 2 }
+  ];
+
+  const activityTrendData = [
+    { date: 'Mon', newUploads: 4, verifiedCount: 3, inquiriesCount: 12 },
+    { date: 'Tue', newUploads: 6, verifiedCount: 5, inquiriesCount: 19 },
+    { date: 'Wed', newUploads: 5, verifiedCount: 4, inquiriesCount: 15 },
+    { date: 'Thu', newUploads: 9, verifiedCount: 7, inquiriesCount: 28 },
+    { date: 'Fri', newUploads: 11, verifiedCount: 9, inquiriesCount: 34 },
+    { date: 'Sat', newUploads: 14, verifiedCount: 12, inquiriesCount: 46 },
+    { date: 'Sun', newUploads: 8, verifiedCount: 8, inquiriesCount: 38 }
+  ];
+
+  const cityDistributionData = [
+    { city: 'Bangalore', listings: 8, inquiries: 42 },
+    { city: 'Mumbai', listings: 6, inquiries: 36 },
+    { city: 'Delhi NCR', listings: 5, inquiries: 29 },
+    { city: 'Hyderabad', listings: 4, inquiries: 18 },
+    { city: 'Pune', listings: 3, inquiries: 14 }
+  ];
+
+  // ----------------------------------------------------
+  // ACTION HANDLERS
+  // ----------------------------------------------------
+  const handleApproveListing = (prop: Property) => {
+    updateVerificationStatus(prop.id, 'approved');
+    logActivity({
+      action: 'property_verified',
+      actorName: user?.name || 'Admin',
+      actorRole: 'Admin',
+      details: `Awarded Green Verified Seal to "${prop.title}" (${prop.locality}, ${prop.city}).`,
+      targetTitle: prop.title,
+      targetId: prop.id,
+      severity: 'success'
+    });
+    showBanner(`Approved "${prop.title}". The property is now live with the Verified Seal.`);
+  };
+
+  const handleMarkUnderReview = (prop: Property) => {
+    updateVerificationStatus(prop.id, 'under_review');
+    logActivity({
+      action: 'property_verified',
+      actorName: user?.name || 'Admin',
+      actorRole: 'Admin',
+      details: `Moved listing "${prop.title}" to Under Review status for document audit.`,
+      targetTitle: prop.title,
+      targetId: prop.id,
+      severity: 'info'
+    });
+    showBanner(`Listing "${prop.title}" moved to Under Review.`);
+  };
+
+  const handleConfirmRejection = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rejectionModalProperty) return;
+    updateVerificationStatus(rejectionModalProperty.id, 'rejected', rejectionReason);
+    logActivity({
+      action: 'property_rejected',
+      actorName: user?.name || 'Admin',
+      actorRole: 'Admin',
+      details: `Rejected listing "${rejectionModalProperty.title}". Reason: ${rejectionReason}`,
+      targetTitle: rejectionModalProperty.title,
+      targetId: rejectionModalProperty.id,
+      severity: 'warning'
+    });
+    showBanner(`Listing "${rejectionModalProperty.title}" rejected with feedback sent to owner.`);
+    setRejectionModalProperty(null);
+  };
+
+  const handleConfirmBlockUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!blockUserModalTarget) return;
+    toggleBlockUser(blockUserModalTarget.id, blockCustomReason);
+    showBanner(`Suspended user "${blockUserModalTarget.name}" (${blockUserModalTarget.email}).`);
+    setBlockUserModalTarget(null);
+  };
+
+  const handleUnblockUser = (u: UserProfile) => {
+    toggleBlockUser(u.id);
+    showBanner(`Reinstated user "${u.name}" to active standing.`);
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-between">
+      
+      {/* Top Header */}
+      <header className="w-full bg-[#0B1E30] text-white py-3.5 px-4 sm:px-8 sticky top-0 z-40 shadow-md border-b border-white/10">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+              className="lg:hidden p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white cursor-pointer"
+              aria-label="Toggle Admin Menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
+            <Link href="/" className="flex items-center gap-2.5 group select-none">
+              <div className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center border border-white/20 shadow-inner">
+                <ShieldCheck className="w-5 h-5 text-[#18A67D]" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-lg font-black tracking-tight text-white leading-none">
+                  Rabnix <span className="text-[#18A67D]">Admin Command Suite</span>
+                </span>
+                <span className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase mt-0.5 hidden sm:inline">
+                  Platform Moderation & Trust Engine
+                </span>
+              </div>
+            </Link>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            {/* Quick Role Switch for QA */}
+            <div className="hidden md:flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-xl border border-white/15 text-xs">
+              <span className="text-[11px] text-slate-300 font-semibold">Demo Role:</span>
+              {(['admin', 'owner', 'agent', 'builder', 'buyer'] as UserRole[]).map((r) => (
+                <button
+                  key={r}
+                  onClick={() => {
+                    quickDemoLogin(r);
+                    if (r !== 'admin') {
+                      router.push('/dashboard');
+                    }
+                  }}
+                  className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase transition-all cursor-pointer ${
+                    r === 'admin'
+                      ? 'bg-[#18A67D] text-white shadow-xs'
+                      : 'text-slate-300 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+
+            <Link
+              href="/dashboard"
+              className="text-xs font-bold text-white bg-white/10 hover:bg-white/20 px-3.5 py-1.5 rounded-xl border border-white/20 transition-all flex items-center gap-1.5"
+            >
+              <Users className="w-3.5 h-3.5 text-[#18A67D]" />
+              <span className="hidden sm:inline">User Dashboard</span>
+              <span className="sm:hidden">Dashboard</span>
+            </Link>
+
+            <Link
+              href="/properties"
+              className="text-xs font-bold text-slate-300 hover:text-white px-3 py-1.5 rounded-xl hover:bg-white/10 transition-all hidden sm:flex items-center gap-1"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>Public Site</span>
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Container with Sidebar Layout */}
+      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 flex flex-col lg:flex-row gap-6 items-start flex-1">
+        
+        {/* Mobile Sidebar Toggle Bar */}
+        <div className="lg:hidden w-full flex items-center justify-between bg-white p-3.5 rounded-2xl border border-[#E2E8F0] shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[#0F2A43] text-white flex items-center justify-center">
+              <ShieldCheck className="w-4 h-4 text-[#18A67D]" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-[#0F2A43] capitalize">
+                Tab: {activeTab.replace('_', ' ')}
+              </div>
+              <div className="text-[10px] text-[#64748B]">Admin Command Suite</div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+            className="px-3 py-1.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs font-bold text-[#0F2A43] flex items-center gap-1.5 cursor-pointer"
+          >
+            <Menu className="w-3.5 h-3.5" />
+            <span>{mobileSidebarOpen ? 'Close Menu' : 'Admin Menu'}</span>
+          </button>
+        </div>
+
+        {/* ============================================================ */}
+        {/* ADMIN SIDEBAR (DESKTOP & MOBILE DRAWER)                      */}
+        {/* ============================================================ */}
+        <aside
+          className={`w-full lg:w-64 shrink-0 bg-white rounded-2xl border border-[#E2E8F0] shadow-xs p-4 flex flex-col space-y-4 lg:sticky lg:top-20 z-30 transition-all ${
+            mobileSidebarOpen ? 'block' : 'hidden lg:block'
+          }`}
+        >
+          {/* Admin Profile Header Card */}
+          <div className="flex items-center gap-3 p-3 bg-gradient-to-br from-[#0F2A43] to-[#173a5a] text-white rounded-xl shadow-xs">
+            <div className="relative w-11 h-11 rounded-full overflow-hidden border-2 border-[#18A67D] shrink-0 bg-slate-800">
+              <Image
+                src={user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
+                alt={user?.name || 'Admin'}
+                fill
+                className="object-cover"
+                referrerPolicy="no-referrer"
+              />
+              <span className="absolute bottom-0 right-0 w-3 h-3 bg-[#18A67D] border-2 border-[#0F2A43] rounded-full"></span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="font-extrabold text-xs text-white truncate flex items-center gap-1">
+                <span>{user?.name || 'Platform Admin'}</span>
+              </div>
+              <div className="text-[10px] text-slate-300 truncate">{user?.email || 'admin@rabnixestate.in'}</div>
+              <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider bg-[#18A67D]/20 text-[#22C39A] border border-[#18A67D]/30">
+                <ShieldCheck className="w-2.5 h-2.5" />
+                SUPER ADMIN
+              </span>
+            </div>
+          </div>
+
+          {/* Sidebar Navigation */}
+          <nav className="space-y-1 text-xs font-semibold">
+            {/* 1. Overview */}
+            <button
+              id="admin-sidebar-overview"
+              onClick={() => {
+                setActiveTab('overview');
+                setMobileSidebarOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+                activeTab === 'overview'
+                  ? 'bg-[#0F2A43] text-white font-black shadow-xs'
+                  : 'hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#0F2A43]'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <LayoutDashboard className={`w-4 h-4 ${activeTab === 'overview' ? 'text-[#22C39A]' : 'text-blue-600'}`} />
+                <span>Overview & KPIs</span>
+              </div>
+            </button>
+
+            {/* 2. Verification Queue */}
+            <button
+              id="admin-sidebar-moderation"
+              onClick={() => {
+                setActiveTab('moderation');
+                setMobileSidebarOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+                activeTab === 'moderation'
+                  ? 'bg-[#0F2A43] text-white font-black shadow-xs'
+                  : 'hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#0F2A43]'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck className={`w-4 h-4 ${activeTab === 'moderation' ? 'text-[#22C39A]' : 'text-emerald-600'}`} />
+                <span>RERA Verification</span>
+              </div>
+              {(pendingCount + underReviewCount) > 0 && (
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${
+                  activeTab === 'moderation'
+                    ? 'bg-amber-400 text-[#0F2A43]'
+                    : 'bg-amber-100 text-amber-900 animate-pulse'
+                }`}>
+                  {pendingCount + underReviewCount}
+                </span>
+              )}
+            </button>
+
+            {/* 3. User & Block Control */}
+            <button
+              id="admin-sidebar-users"
+              onClick={() => {
+                setActiveTab('users');
+                setMobileSidebarOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+                activeTab === 'users'
+                  ? 'bg-[#0F2A43] text-white font-black shadow-xs'
+                  : 'hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#0F2A43]'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Users className={`w-4 h-4 ${activeTab === 'users' ? 'text-[#22C39A]' : 'text-indigo-600'}`} />
+                <span>Users & Security</span>
+              </div>
+              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                activeTab === 'users' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'
+              }`}>
+                {blockedUsersCount > 0 ? `${blockedUsersCount} Blocked` : totalUsersCount}
+              </span>
+            </button>
+
+            {/* 4. Activity Stream */}
+            <button
+              id="admin-sidebar-activity"
+              onClick={() => {
+                setActiveTab('activity');
+                setMobileSidebarOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+                activeTab === 'activity'
+                  ? 'bg-[#0F2A43] text-white font-black shadow-xs'
+                  : 'hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#0F2A43]'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Activity className={`w-4 h-4 ${activeTab === 'activity' ? 'text-[#22C39A]' : 'text-emerald-600'}`} />
+                <span>Audit & Activity Stream</span>
+              </div>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+            </button>
+
+            {/* 5. Platform Trends */}
+            <button
+              id="admin-sidebar-trends"
+              onClick={() => {
+                setActiveTab('trends');
+                setMobileSidebarOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+                activeTab === 'trends'
+                  ? 'bg-[#0F2A43] text-white font-black shadow-xs'
+                  : 'hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#0F2A43]'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <TrendingUp className={`w-4 h-4 ${activeTab === 'trends' ? 'text-[#22C39A]' : 'text-amber-600'}`} />
+                <span>Growth & Analytics</span>
+              </div>
+              <BarChart3 className="w-3.5 h-3.5 text-slate-400" />
+            </button>
+
+            {/* 6. Settings & Maintenance */}
+            <button
+              id="admin-sidebar-settings"
+              onClick={() => {
+                setActiveTab('settings');
+                setMobileSidebarOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+                activeTab === 'settings'
+                  ? 'bg-[#0F2A43] text-white font-black shadow-xs'
+                  : 'hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#0F2A43]'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Settings className={`w-4 h-4 ${activeTab === 'settings' ? 'text-[#22C39A]' : 'text-slate-600'}`} />
+                <span>Platform Settings</span>
+              </div>
+              <SlidersHorizontal className="w-3.5 h-3.5 text-slate-400" />
+            </button>
+          </nav>
+
+          {/* Quick Demo Persona Switcher */}
+          <div className="mt-2 pt-3 border-t border-[#E2E8F0] space-y-2">
+            <div className="text-[10px] font-extrabold text-[#64748B] uppercase tracking-wider flex items-center justify-between">
+              <span>Switch Test Persona:</span>
+            </div>
+            <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+              {(['admin', 'owner', 'agent', 'builder', 'buyer'] as UserRole[]).map((r) => (
+                <button
+                  key={r}
+                  id={`admin-persona-${r}`}
+                  onClick={() => {
+                    quickDemoLogin(r);
+                    if (r !== 'admin') {
+                      router.push('/dashboard');
+                    }
+                  }}
+                  className={`p-1.5 rounded-lg font-bold border transition-all cursor-pointer ${
+                    r === 'admin'
+                      ? 'bg-[#0F2A43] text-white border-[#0F2A43] shadow-xs'
+                      : 'bg-white text-[#64748B] border-[#CBD5E1] hover:border-[#0F2A43] hover:text-[#0F2A43]'
+                  }`}
+                >
+                  <span className="capitalize">{r}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Shortcuts & Actions */}
+          <div className="pt-3 border-t border-[#E2E8F0] space-y-1.5 text-xs font-bold">
+            <Link
+              href="/dashboard"
+              className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-[#0F2A43] transition-colors"
+            >
+              <span className="flex items-center gap-2">
+                <Users className="w-3.5 h-3.5 text-[#18A67D]" />
+                User Dashboard
+              </span>
+              <ArrowUpRight className="w-3.5 h-3.5 text-slate-400" />
+            </Link>
+
+            <Link
+              href="/post-property"
+              className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-[#0F2A43] transition-colors"
+            >
+              <span className="flex items-center gap-2">
+                <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                Post New Property
+              </span>
+              <ArrowUpRight className="w-3.5 h-3.5 text-slate-400" />
+            </Link>
+
+            <button
+              onClick={() => {
+                resetToDefaultData();
+                showBanner('Reset all demo listings and users to initial baseline seed.');
+              }}
+              className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors cursor-pointer text-left"
+            >
+              <span className="flex items-center gap-2">
+                <RotateCcw className="w-3.5 h-3.5" />
+                Reset Demo Seed
+              </span>
+            </button>
+          </div>
+        </aside>
+
+        {/* ============================================================ */}
+        {/* MAIN ADMIN CONTENT AREA                                      */}
+        {/* ============================================================ */}
+        <main className="flex-1 min-w-0 space-y-6">
+          
+          {/* Success / Info Action Notification */}
+          {actionSuccessBanner && (
+            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs sm:text-sm font-bold flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-center gap-2.5">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                <span>{actionSuccessBanner}</span>
+              </div>
+              <button onClick={() => setActionSuccessBanner(null)} className="text-emerald-700 hover:text-emerald-950 cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          {/* ---------------------------------------------------- */}
+          {/* TAB 0: ADMIN OVERVIEW & KPI SUMMARY                  */}
+          {/* ---------------------------------------------------- */}
+          {activeTab === 'overview' && (
+            <div className="space-y-6 animate-in fade-in duration-200">
+              
+              {/* Hero Banner */}
+              <div className="bg-gradient-to-r from-[#0F2A43] to-[#163b5c] text-white rounded-2xl p-6 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="bg-[#18A67D] text-[#0F2A43] text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
+                      Master Control Center
+                    </span>
+                    <span className="text-xs text-slate-300 flex items-center gap-1 font-mono">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                      Platform Operational
+                    </span>
+                  </div>
+                  <h1 className="text-xl sm:text-2xl font-black tracking-tight">
+                    Welcome to Rabnix Admin Command Suite
+                  </h1>
+                  <p className="text-xs text-slate-300 max-w-xl">
+                    Real-time oversight over RERA compliance audits, seller identity verifications, user moderation, and transaction analytics.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 self-stretch sm:self-auto">
+                  <button
+                    onClick={() => setActiveTab('moderation')}
+                    className="flex-1 sm:flex-initial px-4 py-2.5 bg-[#18A67D] hover:bg-[#0E7C5D] text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Audit Queue ({pendingCount})</span>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('users')}
+                    className="flex-1 sm:flex-initial px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl border border-white/20 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <Users className="w-4 h-4" />
+                    <span>Users ({totalUsersCount})</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Top KPI Metric Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+                <div 
+                  onClick={() => setActiveTab('moderation')}
+                  className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-xs space-y-1 cursor-pointer hover:border-[#18A67D] transition-all group"
+                >
+                  <span className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider block">Total Listed</span>
+                  <div className="text-2xl font-black text-[#0F2A43] group-hover:text-[#18A67D] transition-colors">{totalListings}</div>
+                  <span className="text-[11px] text-[#64748B] font-medium">All properties</span>
+                </div>
+
+                <div 
+                  onClick={() => {
+                    setActiveTab('moderation');
+                    setModFilterStatus('pending');
+                  }}
+                  className="bg-amber-50/80 p-4 rounded-2xl border border-amber-200 shadow-xs space-y-1 cursor-pointer hover:bg-amber-100/80 transition-all"
+                >
+                  <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider flex items-center justify-between">
+                    <span>Pending Queue</span>
+                    <Clock className="w-3.5 h-3.5 text-amber-700" />
+                  </span>
+                  <div className="text-2xl font-black text-amber-900">{pendingCount}</div>
+                  <span className="text-[11px] text-amber-800 font-medium">Awaiting audit</span>
+                </div>
+
+                <div 
+                  onClick={() => {
+                    setActiveTab('moderation');
+                    setModFilterStatus('under_review');
+                  }}
+                  className="bg-blue-50/80 p-4 rounded-2xl border border-blue-200 shadow-xs space-y-1 cursor-pointer hover:bg-blue-100/80 transition-all"
+                >
+                  <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wider flex items-center justify-between">
+                    <span>Under Review</span>
+                    <Activity className="w-3.5 h-3.5 text-blue-700" />
+                  </span>
+                  <div className="text-2xl font-black text-blue-900">{underReviewCount}</div>
+                  <span className="text-[11px] text-blue-800 font-medium">Field surveyor</span>
+                </div>
+
+                <div 
+                  onClick={() => {
+                    setActiveTab('users');
+                    setUserStatusFilter('all');
+                  }}
+                  className="bg-emerald-50/80 p-4 rounded-2xl border border-emerald-200 shadow-xs space-y-1 cursor-pointer hover:bg-emerald-100/80 transition-all"
+                >
+                  <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider flex items-center justify-between">
+                    <span>Total Users</span>
+                    <Users className="w-3.5 h-3.5 text-emerald-700" />
+                  </span>
+                  <div className="text-2xl font-black text-emerald-900">{totalUsersCount}</div>
+                  <span className="text-[11px] text-emerald-800 font-medium">{activeUsersCount} Active</span>
+                </div>
+
+                <div 
+                  onClick={() => {
+                    setActiveTab('users');
+                    setUserStatusFilter('blocked');
+                  }}
+                  className="bg-rose-50/80 p-4 rounded-2xl border border-rose-200 shadow-xs space-y-1 cursor-pointer hover:bg-rose-100/80 transition-all"
+                >
+                  <span className="text-[10px] font-bold text-rose-800 uppercase tracking-wider flex items-center justify-between">
+                    <span>Blocked Users</span>
+                    <UserX className="w-3.5 h-3.5 text-rose-700" />
+                  </span>
+                  <div className="text-2xl font-black text-rose-900">{blockedUsersCount}</div>
+                  <span className="text-[11px] text-rose-800 font-medium">Suspended</span>
+                </div>
+
+                <div 
+                  onClick={() => setActiveTab('activity')}
+                  className="bg-[#0F2A43] text-white p-4 rounded-2xl border border-[#0F2A43] shadow-xs space-y-1 cursor-pointer hover:bg-[#153a5c] transition-all"
+                >
+                  <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center justify-between">
+                    <span>System Events</span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  </span>
+                  <div className="text-2xl font-black text-white">{activityLogs.length}</div>
+                  <span className="text-[11px] text-slate-300 font-medium">Audit logs</span>
+                </div>
+              </div>
+
+              {/* Quick Navigation Action Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div 
+                  onClick={() => setActiveTab('moderation')}
+                  className="bg-white p-5 rounded-2xl border border-[#E2E8F0] shadow-xs hover:border-[#18A67D] hover:shadow-md transition-all cursor-pointer space-y-2 group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <ShieldCheck className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <h3 className="font-extrabold text-sm text-[#0F2A43]">RERA Verification Queue</h3>
+                  <p className="text-xs text-[#64748B]">
+                    {pendingCount} listings awaiting document check and Green Seal approval.
+                  </p>
+                  <div className="text-xs font-bold text-[#18A67D] flex items-center gap-1 pt-1">
+                    <span>Open Moderation</span>
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+
+                <div 
+                  onClick={() => setActiveTab('users')}
+                  className="bg-white p-5 rounded-2xl border border-[#E2E8F0] shadow-xs hover:border-indigo-500 hover:shadow-md transition-all cursor-pointer space-y-2 group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-700 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Users className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <h3 className="font-extrabold text-sm text-[#0F2A43]">User & Anti-Fraud Center</h3>
+                  <p className="text-xs text-[#64748B]">
+                    Manage accounts, OTP validations, roles, and block abusive users.
+                  </p>
+                  <div className="text-xs font-bold text-indigo-600 flex items-center gap-1 pt-1">
+                    <span>Manage Users</span>
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+
+                <div 
+                  onClick={() => setActiveTab('activity')}
+                  className="bg-white p-5 rounded-2xl border border-[#E2E8F0] shadow-xs hover:border-emerald-500 hover:shadow-md transition-all cursor-pointer space-y-2 group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Activity className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <h3 className="font-extrabold text-sm text-[#0F2A43]">Live Activity Stream</h3>
+                  <p className="text-xs text-[#64748B]">
+                    Immutable audit log of all uploads, verification actions, and logins.
+                  </p>
+                  <div className="text-xs font-bold text-emerald-600 flex items-center gap-1 pt-1">
+                    <span>View Stream</span>
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+
+                <div 
+                  onClick={() => setActiveTab('trends')}
+                  className="bg-white p-5 rounded-2xl border border-[#E2E8F0] shadow-xs hover:border-amber-500 hover:shadow-md transition-all cursor-pointer space-y-2 group"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <TrendingUp className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <h3 className="font-extrabold text-sm text-[#0F2A43]">Growth & Analytics</h3>
+                  <p className="text-xs text-[#64748B]">
+                    Velocity charts, Metro supply/demand, and user demographic insights.
+                  </p>
+                  <div className="text-xs font-bold text-amber-600 flex items-center gap-1 pt-1">
+                    <span>Explore Charts</span>
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Pending Verifications Quick List Preview */}
+              <div className="bg-white rounded-2xl p-5 border border-[#E2E8F0] shadow-xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-extrabold text-sm sm:text-base text-[#0F2A43]">
+                      Urgent Verifications Awaiting Review
+                    </h3>
+                    <p className="text-xs text-[#64748B]">
+                      Properties submitted recently requiring RERA and document validation.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('moderation')}
+                    className="text-xs font-bold text-[#18A67D] hover:underline cursor-pointer flex items-center gap-1"
+                  >
+                    <span>View Full Queue ({pendingCount})</span>
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {properties.filter(p => p.verificationStatus === 'pending' || p.verificationStatus === 'under_review').length === 0 ? (
+                  <div className="py-8 text-center text-xs text-slate-400">
+                    No pending verifications at this time. All listings have been audited.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100">
+                    {properties
+                      .filter(p => p.verificationStatus === 'pending' || p.verificationStatus === 'under_review')
+                      .slice(0, 4)
+                      .map((prop) => (
+                        <div key={prop.id} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-14 h-14 rounded-xl overflow-hidden relative shrink-0 bg-slate-100 border border-slate-200">
+                              <Image
+                                src={prop.images[0] || 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=300&auto=format&fit=crop&q=80'}
+                                alt={prop.title}
+                                fill
+                                className="object-cover"
+                                referrerPolicy="no-referrer"
+                              />
+                            </div>
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`px-1.5 py-0.2 rounded text-[9px] font-black uppercase ${
+                                  prop.verificationStatus === 'under_review' ? 'bg-blue-100 text-blue-800' : 'bg-amber-100 text-amber-900'
+                                }`}>
+                                  {prop.verificationStatus === 'under_review' ? 'Under Review' : 'Pending Audit'}
+                                </span>
+                                <span className="text-xs font-bold text-[#18A67D]">{prop.priceFormatted}</span>
+                              </div>
+                              <h4 className="font-extrabold text-xs text-[#0F2A43] truncate max-w-sm">{prop.title}</h4>
+                              <div className="text-[11px] text-slate-500">
+                                {prop.locality}, {prop.city} • RERA: <span className="font-mono font-bold text-slate-700">{prop.reraId || 'NOT_DECLARED'}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 self-end sm:self-center">
+                            <button
+                              onClick={() => setSelectedPropertyModal(prop)}
+                              className="px-2.5 py-1 rounded-lg border border-slate-300 text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1 cursor-pointer"
+                            >
+                              <Eye className="w-3 h-3" />
+                              <span>Audit</span>
+                            </button>
+                            <button
+                              onClick={() => handleApproveListing(prop)}
+                              className="px-3 py-1 rounded-lg bg-[#18A67D] hover:bg-[#0E7C5D] text-white text-xs font-bold flex items-center gap-1 cursor-pointer shadow-2xs"
+                            >
+                              <ShieldCheck className="w-3 h-3" />
+                              <span>Approve Seal</span>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+
+            </div>
+          )}
+
+        {/* ---------------------------------------------------- */}
+        {/* TAB 1: VERIFICATION & MODERATION QUEUE               */}
+        {/* ---------------------------------------------------- */}
+        {activeTab === 'moderation' && (
+          <div className="space-y-5 animate-in fade-in duration-200">
+            
+            {/* Search and Status Subtabs */}
+            <div className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-xs space-y-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {[
+                    { id: 'all', label: `All Listed (${totalListings})` },
+                    { id: 'pending', label: `Pending Queue (${pendingCount})` },
+                    { id: 'under_review', label: `Under Review (${underReviewCount})` },
+                    { id: 'approved', label: `Approved Seal (${approvedCount})` },
+                    { id: 'rejected', label: `Rejected (${rejectedCount})` }
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setModFilterStatus(tab.id as any)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        modFilterStatus === tab.id
+                          ? 'bg-[#0F2A43] text-white shadow-xs'
+                          : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#64748B] hover:text-[#0F2A43]'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Search Box */}
+              <div className="relative">
+                <Search className="w-4 h-4 text-[#94A3B8] absolute left-3 top-3" />
+                <input
+                  type="text"
+                  value={modSearchQuery}
+                  onChange={(e) => setModSearchQuery(e.target.value)}
+                  placeholder="Search verification queue by Property Title, Locality, City, RERA ID, or Seller Name..."
+                  className="w-full pl-9 pr-4 py-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs sm:text-sm font-medium outline-none focus:bg-white focus:border-[#18A67D]"
+                />
+              </div>
+            </div>
+
+            {/* Properties Queue List */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-xs font-extrabold text-[#0F2A43]">
+                <span>VERIFICATION ITEMS ({filteredProperties.length})</span>
+                <span className="text-[#64748B]">Real-time RERA registry & document inspection engine</span>
+              </div>
+
+              {filteredProperties.length === 0 ? (
+                <div className="bg-white p-12 rounded-2xl border border-[#E2E8F0] text-center space-y-3">
+                  <CheckCircle2 className="w-12 h-12 text-[#18A67D] mx-auto" />
+                  <h3 className="text-base font-bold text-[#0F2A43]">No listings match this queue filter!</h3>
+                  <p className="text-xs text-[#64748B]">All listings for status &apos;{modFilterStatus}&apos; have been processed.</p>
+                  <button
+                    onClick={() => setModFilterStatus('all')}
+                    className="text-xs font-bold text-[#18A67D] underline cursor-pointer"
+                  >
+                    View all platform listings
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredProperties.map((prop) => {
+                    const currentStatus = prop.verificationStatus || (prop.isVerified ? 'approved' : 'pending');
+
+                    return (
+                      <div
+                        key={prop.id}
+                        className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-xs hover:shadow-md transition-all space-y-4"
+                      >
+                        {/* Header Row */}
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-[#F1F5F9] pb-4">
+                          <div className="flex items-start gap-3.5">
+                            <div className="w-20 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0 relative">
+                              <Image
+                                src={prop.images[0]}
+                                alt={prop.title}
+                                fill
+                                className="object-cover"
+                                referrerPolicy="no-referrer"
+                              />
+                            </div>
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                  currentStatus === 'approved'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : currentStatus === 'pending'
+                                    ? 'bg-amber-100 text-amber-800'
+                                    : currentStatus === 'under_review'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : 'bg-rose-100 text-rose-800'
+                                }`}>
+                                  {currentStatus.replace('_', ' ')}
+                                </span>
+                                <span className="text-xs font-black text-[#0E7C5D]">{prop.priceFormatted}</span>
+                                <span className="text-xs text-[#64748B]">({prop.carpetAreaSqFt} sq.ft)</span>
+                                <span className="text-[11px] bg-slate-100 px-2 py-0.5 rounded text-slate-700 font-bold">
+                                  {prop.category} • {prop.listingType.toUpperCase()}
+                                </span>
+                              </div>
+
+                              <h3 className="text-sm sm:text-base font-bold text-[#0F2A43] mt-1">
+                                {prop.title}
+                              </h3>
+
+                              <div className="flex flex-wrap items-center gap-2 text-xs text-[#64748B] mt-0.5">
+                                <MapPin className="w-3.5 h-3.5 text-[#18A67D]" />
+                                <span>{prop.locality}, {prop.city}</span>
+                                {prop.reraId && (
+                                  <span className="font-mono text-[11px] bg-slate-100 px-2 py-0.5 rounded text-[#0F2A43] font-bold">
+                                    RERA: {prop.reraId}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Lister Details */}
+                          <div className="text-xs space-y-1 bg-[#F8FAFC] p-3 rounded-xl border border-[#E2E8F0] min-w-56">
+                            <div className="text-[10px] font-bold text-[#64748B] uppercase">Submitted By:</div>
+                            <div className="font-bold text-[#0F2A43] flex items-center justify-between">
+                              <span>{prop.postedBy.name}</span>
+                              <span className="text-[10px] text-[#18A67D] bg-emerald-50 px-1.5 py-0.5 rounded font-extrabold">
+                                {prop.postedBy.type}
+                              </span>
+                            </div>
+                            <div className="text-[#64748B] flex items-center gap-1">
+                              <Phone className="w-3 h-3 text-[#94A3B8]" />
+                              <span>{prop.postedBy.phone}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Submitted Documents & Audit Check */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+                          <div className="space-y-1 bg-[#F8FAFC] p-3 rounded-xl border border-[#F1F5F9]">
+                            <span className="text-[10px] font-bold text-[#64748B] uppercase block">Submitted Documents</span>
+                            <div className="space-y-1">
+                              {(prop.documentsSubmitted || [
+                                'Encumbrance Certificate (EC)',
+                                'Approved Floor Sanction Plan',
+                                'Property Tax Clearance Receipt'
+                              ]).map((doc, i) => (
+                                <div key={i} className="flex items-center gap-1.5 text-[#0F2A43]">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-[#18A67D] shrink-0" />
+                                  <span className="truncate">{doc}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="space-y-1 bg-[#F8FAFC] p-3 rounded-xl border border-[#F1F5F9]">
+                            <span className="text-[10px] font-bold text-[#64748B] uppercase block">Verification Criteria</span>
+                            <div className="space-y-1 text-[#334155]">
+                              <div>• RERA Portal Registry: <strong className="text-emerald-700">Online Match</strong></div>
+                              <div>• Encumbrance Free Title: <strong className="text-emerald-700">Clear</strong></div>
+                              <div>• Photos & Dimensions: <strong className="text-[#0F2A43]">{prop.images.length} High-Res Verified</strong></div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-1 bg-[#F8FAFC] p-3 rounded-xl border border-[#F1F5F9]">
+                            <span className="text-[10px] font-bold text-[#64748B] uppercase block">Status History & Notes</span>
+                            {prop.rejectionReason ? (
+                              <div className="p-2 rounded bg-rose-50 border border-rose-200 text-rose-800 text-[11px] font-medium">
+                                {prop.rejectionReason}
+                              </div>
+                            ) : currentStatus === 'approved' ? (
+                              <div className="p-2 rounded bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-medium">
+                                Verified by Admin. Green Verified Badge active on listing.
+                              </div>
+                            ) : (
+                              <div className="p-2 rounded bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-medium">
+                                Awaiting admin decision. Click Approve to grant verified seal.
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Action Buttons Row */}
+                        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#F1F5F9]">
+                          <div className="flex items-center gap-2">
+                            <Link
+                              href={`/properties/${prop.id}`}
+                              target="_blank"
+                              className="px-3 py-1.5 bg-[#F1F5F9] hover:bg-[#E2E8F0] text-[#0F2A43] rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
+                            >
+                              <span>Preview Page</span>
+                              <ArrowUpRight className="w-3.5 h-3.5" />
+                            </Link>
+                            <button
+                              onClick={() => {
+                                deleteProperty(prop.id);
+                                logActivity({
+                                  action: 'property_deleted',
+                                  actorName: user?.name || 'Admin',
+                                  actorRole: 'Admin',
+                                  details: `Deleted listing "${prop.title}" (${prop.id}) permanently from platform catalog.`,
+                                  targetTitle: prop.title,
+                                  targetId: prop.id,
+                                  severity: 'danger'
+                                });
+                                showBanner(`Deleted property "${prop.title}".`);
+                              }}
+                              className="px-3 py-1.5 text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span>Delete</span>
+                            </button>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2">
+                            <button
+                              onClick={() => handleMarkUnderReview(prop)}
+                              className="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              Mark Under Review
+                            </button>
+
+                            <button
+                              onClick={() => setRejectionModalProperty(prop)}
+                              className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              Reject Listing
+                            </button>
+
+                            <button
+                              onClick={() => handleApproveListing(prop)}
+                              className="px-4 py-2 bg-[#18A67D] hover:bg-[#0E7C5D] text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <Check className="w-4 h-4" />
+                              <span>Approve & Grant Verified Seal</span>
+                            </button>
+                          </div>
+                        </div>
+
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+          </div>
+        )}
+
+        {/* ---------------------------------------------------- */}
+        {/* TAB 2: USER MANAGEMENT & BLOCK CONTROLS              */}
+        {/* ---------------------------------------------------- */}
+        {activeTab === 'users' && (
+          <div className="space-y-5 animate-in fade-in duration-200">
+            
+            {/* User Directory Toolbar */}
+            <div className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-xs space-y-3">
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
+                
+                {/* Role Tabs */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {[
+                    { id: 'all', label: `All Roles (${users.length})` },
+                    { id: 'buyer', label: `Buyers (${users.filter(u => u.role === 'buyer').length})` },
+                    { id: 'owner', label: `Owners (${users.filter(u => u.role === 'owner').length})` },
+                    { id: 'agent', label: `Agents (${users.filter(u => u.role === 'agent').length})` },
+                    { id: 'builder', label: `Builders (${users.filter(u => u.role === 'builder').length})` }
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setUserRoleFilter(tab.id as any)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        userRoleFilter === tab.id
+                          ? 'bg-[#0F2A43] text-white shadow-xs'
+                          : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#64748B] hover:text-[#0F2A43]'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Status Toggle */}
+                <div className="flex items-center gap-1.5 bg-[#F8FAFC] p-1 rounded-xl border border-[#E2E8F0]">
+                  <button
+                    onClick={() => setUserStatusFilter('all')}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      userStatusFilter === 'all' ? 'bg-white text-[#0F2A43] shadow-xs' : 'text-[#64748B]'
+                    }`}
+                  >
+                    All Status
+                  </button>
+                  <button
+                    onClick={() => setUserStatusFilter('active')}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      userStatusFilter === 'active' ? 'bg-emerald-600 text-white shadow-xs' : 'text-[#64748B]'
+                    }`}
+                  >
+                    Active Only
+                  </button>
+                  <button
+                    onClick={() => setUserStatusFilter('blocked')}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      userStatusFilter === 'blocked' ? 'bg-rose-600 text-white shadow-xs' : 'text-[#64748B]'
+                    }`}
+                  >
+                    Blocked ({blockedUsersCount})
+                  </button>
+                </div>
+              </div>
+
+              {/* Search User Input */}
+              <div className="relative">
+                <Search className="w-4 h-4 text-[#94A3B8] absolute left-3 top-3" />
+                <input
+                  type="text"
+                  value={userSearchQuery}
+                  onChange={(e) => setUserSearchQuery(e.target.value)}
+                  placeholder="Search user directory by Name, Email, Mobile number, Organization, RERA ID, or City..."
+                  className="w-full pl-9 pr-4 py-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs sm:text-sm font-medium outline-none focus:bg-white focus:border-[#18A67D]"
+                />
+              </div>
+            </div>
+
+            {/* Users Table */}
+            <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs overflow-hidden">
+              <div className="p-4 border-b border-[#F1F5F9] flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-extrabold text-[#0F2A43]">
+                  <Users className="w-4 h-4 text-[#18A67D]" />
+                  <span>REGISTERED USERS & MODERATION STANDING ({filteredUsers.length})</span>
+                </div>
+                <span className="text-xs text-[#64748B]">Admin has full authority to block or reinstate user accounts</span>
+              </div>
+
+              {filteredUsers.length === 0 ? (
+                <div className="p-12 text-center space-y-3">
+                  <UserX className="w-12 h-12 text-slate-400 mx-auto" />
+                  <h3 className="text-base font-bold text-[#0F2A43]">No users match the search criteria</h3>
+                  <p className="text-xs text-[#64748B]">Try searching with a different name or resetting status filters.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[#F8FAFC] text-[#64748B] uppercase font-bold text-[10px] tracking-wider border-b border-[#E2E8F0]">
+                      <tr>
+                        <th className="py-3.5 px-4">User Details</th>
+                        <th className="py-3.5 px-4">Role & Organization</th>
+                        <th className="py-3.5 px-4">Contact Details</th>
+                        <th className="py-3.5 px-4">Listings / Activity</th>
+                        <th className="py-3.5 px-4">Account Status</th>
+                        <th className="py-3.5 px-4 text-right">Moderation Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#F1F5F9]">
+                      {filteredUsers.map((u) => {
+                        const isCurrent = user?.id === u.id;
+                        return (
+                          <tr key={u.id} className={`hover:bg-[#F8FAFC] transition-colors ${u.isBlocked ? 'bg-rose-50/30' : ''}`}>
+                            
+                            {/* User Avatar & Name */}
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100 relative shrink-0 border border-slate-200">
+                                  <Image
+                                    src={u.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
+                                    alt={u.name}
+                                    fill
+                                    className="object-cover"
+                                    referrerPolicy="no-referrer"
+                                  />
+                                </div>
+                                <div>
+                                  <div className="font-bold text-[#0F2A43] flex items-center gap-1.5">
+                                    <span>{u.name}</span>
+                                    {isCurrent && (
+                                      <span className="text-[9px] bg-blue-100 text-blue-800 font-extrabold px-1.5 py-0.2 rounded">
+                                        YOU
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-[11px] text-[#64748B]">
+                                    Joined {u.createdAt || 'Recent'} • {u.city || 'India'}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Role & Org */}
+                            <td className="py-3.5 px-4">
+                              <div className="space-y-0.5">
+                                <span className={`inline-block text-[10px] font-extrabold uppercase px-2 py-0.5 rounded ${
+                                  u.role === 'admin'
+                                    ? 'bg-purple-100 text-purple-800'
+                                    : u.role === 'agent'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : u.role === 'builder'
+                                    ? 'bg-amber-100 text-amber-800'
+                                    : u.role === 'owner'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : 'bg-slate-100 text-slate-800'
+                                }`}>
+                                  {u.role.toUpperCase()}
+                                </span>
+                                {u.companyName && (
+                                  <div className="font-semibold text-[#0F2A43] text-[11px] truncate max-w-44">
+                                    {u.companyName}
+                                  </div>
+                                )}
+                                {u.reraNumber && (
+                                  <div className="text-[10px] text-slate-500 font-mono truncate max-w-44">
+                                    RERA: {u.reraNumber}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+
+                            {/* Contact Details */}
+                            <td className="py-3.5 px-4 space-y-1">
+                              <div className="flex items-center gap-1.5 text-[#0F2A43] font-medium">
+                                <Mail className="w-3 h-3 text-[#94A3B8]" />
+                                <span>{u.email}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 text-[#64748B]">
+                                <Phone className="w-3 h-3 text-[#94A3B8]" />
+                                <span>{u.phone}</span>
+                              </div>
+                            </td>
+
+                            {/* Listings / Inquiries Count */}
+                            <td className="py-3.5 px-4">
+                              <div className="space-y-0.5">
+                                <div className="font-bold text-[#0F2A43]">
+                                  {u.postedListingsCount || 0} Listings posted
+                                </div>
+                                <div className="text-[11px] text-[#64748B]">
+                                  {u.totalInquiriesReceived || 0} Buyer leads
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Status */}
+                            <td className="py-3.5 px-4">
+                              {u.isBlocked ? (
+                                <div className="space-y-1">
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-800">
+                                    <Lock className="w-3 h-3" />
+                                    <span>SUSPENDED / BLOCKED</span>
+                                  </span>
+                                  {u.blockedReason && (
+                                    <div className="text-[10px] text-rose-700 max-w-48 truncate" title={u.blockedReason}>
+                                      {u.blockedReason}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800">
+                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                  <span>ACTIVE STANDING</span>
+                                </span>
+                              )}
+                            </td>
+
+                            {/* Actions */}
+                            <td className="py-3.5 px-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                
+                                {u.isBlocked ? (
+                                  <button
+                                    onClick={() => handleUnblockUser(u)}
+                                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center gap-1 shadow-2xs transition-all cursor-pointer"
+                                  >
+                                    <Unlock className="w-3 h-3" />
+                                    <span>Unblock</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => setBlockUserModalTarget(u)}
+                                    disabled={isCurrent}
+                                    className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 transition-all cursor-pointer ${
+                                      isCurrent
+                                        ? 'opacity-40 cursor-not-allowed bg-slate-100 text-slate-400'
+                                        : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200'
+                                    }`}
+                                    title={isCurrent ? "You cannot block yourself" : "Block and suspend account"}
+                                  >
+                                    <UserX className="w-3.5 h-3.5" />
+                                    <span>Block User</span>
+                                  </button>
+                                )}
+
+                                <button
+                                  onClick={() => {
+                                    if (confirm(`Delete user "${u.name}" permanently from the database?`)) {
+                                      deleteUser(u.id);
+                                      showBanner(`User ${u.name} removed.`);
+                                    }
+                                  }}
+                                  disabled={isCurrent}
+                                  className={`p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-slate-100 transition-colors ${
+                                    isCurrent ? 'opacity-20 cursor-not-allowed' : 'cursor-pointer'
+                                  }`}
+                                  title="Delete User Record"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+          </div>
+        )}
+
+        {/* ---------------------------------------------------- */}
+        {/* TAB 3: ALL ACTIVITY STREAM                           */}
+        {/* ---------------------------------------------------- */}
+        {activeTab === 'activity' && (
+          <div className="space-y-5 animate-in fade-in duration-200">
+            
+            {/* Stream Filter Toolbar */}
+            <div className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-xs space-y-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {[
+                    { id: 'all', label: `All Activity (${activityLogs.length})` },
+                    { id: 'property', label: 'Listings & Uploads' },
+                    { id: 'verified', label: 'Verifications' },
+                    { id: 'blocked', label: 'User Suspensions / Security' },
+                    { id: 'inquiry', label: 'Buyer Leads' }
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActivityFilterAction(tab.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        activityFilterAction === tab.id
+                          ? 'bg-[#0F2A43] text-white shadow-xs'
+                          : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#64748B] hover:text-[#0F2A43]'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  onClick={clearActivityLogs}
+                  className="text-xs font-bold text-[#64748B] hover:text-rose-600 cursor-pointer"
+                >
+                  Clear Log History
+                </button>
+              </div>
+
+              <div className="relative">
+                <Search className="w-4 h-4 text-[#94A3B8] absolute left-3 top-3" />
+                <input
+                  type="text"
+                  value={activitySearchQuery}
+                  onChange={(e) => setActivitySearchQuery(e.target.value)}
+                  placeholder="Search audit trail by Actor, Action Description, or Property Name..."
+                  className="w-full pl-9 pr-4 py-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs sm:text-sm font-medium outline-none focus:bg-white focus:border-[#18A67D]"
+                />
+              </div>
+            </div>
+
+            {/* Chronological Activity List */}
+            <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs p-5 space-y-4">
+              <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-3">
+                <div className="flex items-center gap-2 text-xs font-extrabold text-[#0F2A43]">
+                  <Activity className="w-4 h-4 text-[#18A67D]" />
+                  <span>CHRONOLOGICAL AUDIT & EVENT LOG ({filteredLogs.length})</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-[#18A67D] font-bold">
+                  <span className="w-2 h-2 rounded-full bg-[#18A67D] animate-ping"></span>
+                  <span>Live Streaming</span>
+                </div>
+              </div>
+
+              {filteredLogs.length === 0 ? (
+                <div className="p-12 text-center space-y-2">
+                  <CheckSquare className="w-10 h-10 text-slate-300 mx-auto" />
+                  <div className="text-sm font-bold text-[#0F2A43]">No activity events found in this category</div>
+                  <div className="text-xs text-[#64748B]">All recent operations will appear here as they occur.</div>
+                </div>
+              ) : (
+                <div className="relative border-l-2 border-[#E2E8F0] ml-3 sm:ml-4 pl-4 sm:pl-6 space-y-6">
+                  {filteredLogs.map((log) => {
+                    return (
+                      <div key={log.id} className="relative group">
+                        
+                        {/* Event Dot */}
+                        <div className={`absolute -left-[23px] sm:-left-[31px] top-1 w-3.5 h-3.5 rounded-full border-2 border-white shadow-2xs ${
+                          log.severity === 'success'
+                            ? 'bg-emerald-500'
+                            : log.severity === 'danger'
+                            ? 'bg-rose-500'
+                            : log.severity === 'warning'
+                            ? 'bg-amber-500'
+                            : 'bg-blue-500'
+                        }`}></div>
+
+                        <div className="bg-[#F8FAFC] group-hover:bg-white p-4 rounded-xl border border-[#E2E8F0] group-hover:border-[#CBD5E1] transition-all space-y-2 shadow-2xs">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
+                                log.severity === 'success'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : log.severity === 'danger'
+                                  ? 'bg-rose-100 text-rose-800'
+                                  : log.severity === 'warning'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-blue-100 text-blue-800'
+                              }`}>
+                                {log.action.replace('_', ' ')}
+                              </span>
+                              <span className="text-xs font-black text-[#0F2A43]">
+                                {log.actorName}
+                              </span>
+                              <span className="text-[10px] text-slate-500 bg-slate-200/70 px-1.5 py-0.2 rounded font-bold">
+                                {log.actorRole}
+                              </span>
+                            </div>
+
+                            <span className="text-[11px] font-mono text-[#64748B] flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              <span>{log.timestamp}</span>
+                            </span>
+                          </div>
+
+                          <p className="text-xs sm:text-sm text-[#334155] font-medium leading-relaxed">
+                            {log.details}
+                          </p>
+
+                          {log.targetTitle && (
+                            <div className="text-[11px] text-[#0F2A43] font-bold bg-white p-2 rounded-lg border border-[#E2E8F0] flex items-center justify-between">
+                              <span className="truncate">Target: {log.targetTitle}</span>
+                              {log.targetId && (
+                                <span className="font-mono text-[10px] text-[#94A3B8] shrink-0">
+                                  ID: {log.targetId}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+          </div>
+        )}
+
+        {/* ---------------------------------------------------- */}
+        {/* TAB 4: TRENDS & PLATFORM ANALYTICS                   */}
+        {/* ---------------------------------------------------- */}
+        {activeTab === 'trends' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            
+            {/* Top Stat Row */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-xs space-y-1">
+                <span className="text-[11px] font-bold text-[#64748B] uppercase">Estimated Catalog GMV</span>
+                <div className="text-2xl font-black text-[#0F2A43]">₹52.4 Cr</div>
+                <span className="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3" />
+                  <span>+18.4% this month</span>
+                </span>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-xs space-y-1">
+                <span className="text-[11px] font-bold text-[#64748B] uppercase">Avg Verification Speed</span>
+                <div className="text-2xl font-black text-[#0F2A43]">2.4 hrs</div>
+                <span className="text-[11px] text-emerald-600 font-bold">Fast RERA registry match</span>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-xs space-y-1">
+                <span className="text-[11px] font-bold text-[#64748B] uppercase">Green Seal Adoption</span>
+                <div className="text-2xl font-black text-emerald-700">84.2%</div>
+                <span className="text-[11px] text-[#64748B]">Trust index passing score</span>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-xs space-y-1">
+                <span className="text-[11px] font-bold text-[#64748B] uppercase">Buyer Tour Inquiries</span>
+                <div className="text-2xl font-black text-blue-700">{inquiries.length + 184}</div>
+                <span className="text-[11px] text-blue-700 font-bold">100% verified mobile leads</span>
+              </div>
+            </div>
+
+            {/* Graphs Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              
+              {/* Daily Activity Area Chart */}
+              <div className="bg-white p-5 rounded-2xl border border-[#E2E8F0] shadow-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <h3 className="text-sm font-bold text-[#0F2A43]">Platform Daily Velocity</h3>
+                    <p className="text-xs text-[#64748B]">New Uploads vs Approved Verifications vs Buyer Leads</p>
+                  </div>
+                  <BarChart3 className="w-5 h-5 text-[#18A67D]" />
+                </div>
+                <AdminActivityTrendChart data={activityTrendData} />
+              </div>
+
+              {/* City Distribution Bar Chart */}
+              <div className="bg-white p-5 rounded-2xl border border-[#E2E8F0] shadow-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <h3 className="text-sm font-bold text-[#0F2A43]">Metro Market Inventory & Demand</h3>
+                    <p className="text-xs text-[#64748B]">Listings count vs Inquiries generated across Metros</p>
+                  </div>
+                  <MapPin className="w-5 h-5 text-[#3B82F6]" />
+                </div>
+                <AdminCityDistributionBarChart data={cityDistributionData} />
+              </div>
+
+              {/* User Distribution Pie Chart */}
+              <div className="bg-white p-5 rounded-2xl border border-[#E2E8F0] shadow-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <h3 className="text-sm font-bold text-[#0F2A43]">User Base Segmentation</h3>
+                    <p className="text-xs text-[#64748B]">Registered accounts by Role (Buyers, Owners, Agents, Builders)</p>
+                  </div>
+                  <Users className="w-5 h-5 text-purple-600" />
+                </div>
+                <AdminUserBreakdownPieChart data={userDistributionData} />
+              </div>
+
+              {/* Moderation Status Donut */}
+              <div className="bg-white p-5 rounded-2xl border border-[#E2E8F0] shadow-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <h3 className="text-sm font-bold text-[#0F2A43]">Listing Moderation Distribution</h3>
+                    <p className="text-xs text-[#64748B]">Approved vs Under Review vs Pending vs Rejected</p>
+                  </div>
+                  <ShieldCheck className="w-5 h-5 text-[#10B981]" />
+                </div>
+                <AdminModerationStatusChart data={moderationDonutData} />
+              </div>
+
+            </div>
+
+          </div>
+        )}
+
+        {/* ---------------------------------------------------- */}
+        {/* TAB 5: PLATFORM SETTINGS & MAINTENANCE              */}
+        {/* ---------------------------------------------------- */}
+        {activeTab === 'settings' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            
+            <div className="bg-white p-6 rounded-2xl border border-[#E2E8F0] shadow-xs space-y-6">
+              <div>
+                <h3 className="font-black text-base text-[#0F2A43]">Platform Security & Moderation Configuration</h3>
+                <p className="text-xs text-[#64748B] mt-0.5">
+                  Configure automated RERA compliance validation thresholds, circle rate safety margins, and database maintenance routines.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="font-bold text-xs text-[#0F2A43] flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-[#18A67D]" />
+                      <span>RERA Auto-Verification Lookup</span>
+                    </div>
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                      Active
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    Automatically checks format patterns against MahaRERA, K-RERA, UP-RERA, and HRERA state portals before moving to manual surveyor queue.
+                  </p>
+                  <div className="text-xs text-slate-500 font-semibold flex items-center gap-1.5">
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>State Regex validation enabled</span>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="font-bold text-xs text-[#0F2A43] flex items-center gap-2">
+                      <IndianRupee className="w-4 h-4 text-blue-600" />
+                      <span>Circle Rate Price Sanity Guard</span>
+                    </div>
+                    <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-blue-100 text-blue-800">
+                      ±35% Threshold
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    Flag listings whose per-sq-ft asking price deviates beyond 35% from the locality circle rate government benchmark.
+                  </p>
+                  <div className="text-xs text-slate-500 font-semibold flex items-center gap-1.5">
+                    <Check className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Auto-flags for fraud inspection</span>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="font-bold text-xs text-[#0F2A43] flex items-center gap-2">
+                      <Download className="w-4 h-4 text-purple-600" />
+                      <span>Export System Audit History</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    Download an immutable JSON snapshot of all system moderation logs, user suspensions, and property approvals.
+                  </p>
+                  <button
+                    onClick={() => {
+                      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(activityLogs, null, 2));
+                      const downloadAnchor = document.createElement('a');
+                      downloadAnchor.setAttribute("href", dataStr);
+                      downloadAnchor.setAttribute("download", `rabnix_audit_logs_${new Date().toISOString().slice(0,10)}.json`);
+                      document.body.appendChild(downloadAnchor);
+                      downloadAnchor.click();
+                      downloadAnchor.remove();
+                      showBanner('Audit logs exported successfully.');
+                    }}
+                    className="px-3.5 py-1.5 rounded-lg bg-[#0F2A43] hover:bg-[#163b5c] text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download JSON Logs</span>
+                  </button>
+                </div>
+
+                <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="font-bold text-xs text-rose-900 flex items-center gap-2">
+                      <RotateCcw className="w-4 h-4 text-rose-600" />
+                      <span>Reset Demo Database Seed</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-rose-700">
+                    Restores all initial verified and pending listings, default test users, and demo inquiries back to the baseline sandbox state.
+                  </p>
+                  <button
+                    onClick={() => {
+                      resetToDefaultData();
+                      showBanner('Reset all demo listings and users to default state.');
+                    }}
+                    className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Restore Initial Seed</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        )}
+
+      </main>
+      </div>
+
+      {/* ---------------------------------------------------- */}
+      {/* MODAL: BLOCK USER SUSPENSION                         */}
+      {/* ---------------------------------------------------- */}
+      {blockUserModalTarget && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center gap-2 text-rose-700 font-extrabold text-base">
+                <UserX className="w-5 h-5" />
+                <span>Suspend & Block User Account</span>
+              </div>
+              <button
+                onClick={() => setBlockUserModalTarget(null)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-[#64748B]">
+              You are about to block <strong>{blockUserModalTarget.name}</strong> ({blockUserModalTarget.email}). 
+              They will be barred from posting new listings, responding to inquiries, or accessing buyer contacts.
+            </p>
+
+            <form onSubmit={handleConfirmBlockUser} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-[#172033] uppercase">
+                  Select Suspension Reason
+                </label>
+                <select
+                  onChange={(e) => setBlockCustomReason(e.target.value)}
+                  className="w-full p-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs font-medium outline-none"
+                >
+                  <option value="Multiple policy violations or duplicate spam listings reported.">
+                    Spam / Duplicate unverified listings
+                  </option>
+                  <option value="RERA certificate was falsified or revoked by State Regulatory Board.">
+                    Falsified or revoked RERA license
+                  </option>
+                  <option value="Unsolicited commercial marketing or abusive tele-calling to buyers.">
+                    Unsolicited buyer outreach & harassment
+                  </option>
+                  <option value="Pricing fraud / circle rate misrepresentation detected by audit.">
+                    Pricing fraud & false circle rates
+                  </option>
+                  <option value="Temporary account suspension pending identity & document re-verification.">
+                    Pending identity re-verification
+                  </option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-[#172033] uppercase">
+                  Custom Notice Note (Shown to user on login)
+                </label>
+                <textarea
+                  rows={3}
+                  value={blockCustomReason}
+                  onChange={(e) => setBlockCustomReason(e.target.value)}
+                  className="w-full p-3 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs outline-none focus:border-rose-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setBlockUserModalTarget(null)}
+                  className="px-4 py-2 rounded-xl border text-xs font-bold text-[#0F2A43] hover:bg-[#F8FAFC]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md flex items-center gap-1.5"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span>Confirm Account Suspension</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------------------------------------------- */}
+      {/* MODAL: REJECT PROPERTY LISTING                       */}
+      {/* ---------------------------------------------------- */}
+      {rejectionModalProperty && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center gap-2 text-rose-700 font-extrabold text-base">
+                <XCircle className="w-5 h-5" />
+                <span>Reject Property Listing</span>
+              </div>
+              <button
+                onClick={() => setRejectionModalProperty(null)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-[#64748B]">
+              Provide feedback for <strong>{rejectionModalProperty.title}</strong>. The owner will see this notification in their user dashboard to submit corrections.
+            </p>
+
+            <form onSubmit={handleConfirmRejection} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-[#172033] uppercase">
+                  Select Common Rejection Reason
+                </label>
+                <select
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  className="w-full p-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs font-medium outline-none"
+                >
+                  <option value="State RERA certificate could not be verified on the official real estate regulatory portal.">
+                    RERA certificate mismatch on state portal
+                  </option>
+                  <option value="Inaccurate carpet area vs super built-up ratio or missing floor sanction document.">
+                    Floor plan / area mismatch
+                  </option>
+                  <option value="Property ownership proof or Encumbrance Certificate copy is unreadable.">
+                    Unreadable title / EC document
+                  </option>
+                  <option value="Low resolution photographs or watermarked exterior images submitted.">
+                    Poor photo quality / watermarked images
+                  </option>
+                  <option value="Price listed deviates significantly from prevailing locality circle rates.">
+                    Suspicious / inaccurate pricing
+                  </option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-[#172033] uppercase">
+                  Custom Feedback Note to Lister
+                </label>
+                <textarea
+                  rows={3}
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  className="w-full p-3 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setRejectionModalProperty(null)}
+                  className="px-4 py-2 rounded-xl border text-xs font-bold text-[#0F2A43] hover:bg-[#F8FAFC]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md"
+                >
+                  Confirm Rejection
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Footer */}
+      <footer className="w-full border-t border-[#E2E8F0] bg-white py-4 px-4 text-center text-xs text-[#64748B]">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+          <span>&copy; {new Date().getFullYear()} Rabnix Estate Admin Verification & Moderation Suite.</span>
+          <div className="flex items-center gap-4 text-xs font-medium">
+            <Link href="/" className="hover:text-[#18A67D]">Home</Link>
+            <span className="text-slate-300">•</span>
+            <Link href="/dashboard" className="hover:text-[#18A67D]">User Dashboard</Link>
+            <span className="text-slate-300">•</span>
+            <Link href="/properties" className="hover:text-[#18A67D]">Catalog</Link>
+            <span className="text-slate-300">•</span>
+            <Link href="/post-property" className="hover:text-[#18A67D]">Post Property</Link>
+          </div>
+        </div>
+      </footer>
+
+    </div>
+  );
+}

@@ -1,0 +1,131 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { getCurrentUser } from '@/lib/auth';
+import { serializeProperty } from '@/lib/serialize';
+import type { Property } from '@/lib/types';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+// GET /api/properties
+//   ?scope=public  -> only approved/verified (default for home & search)
+//   ?scope=all     -> everything (admin only)
+//   ?mine=1        -> only the current user's listings
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const scope = searchParams.get('scope') || 'public';
+    const mine = searchParams.get('mine');
+    const user = await getCurrentUser();
+
+    const where: any = {};
+
+    if (mine === '1') {
+      if (!user) return NextResponse.json({ success: false, error: 'Not authenticated' }, { status: 401 });
+      where.postedByUserId = user.id;
+    } else if (scope === 'all') {
+      if (user?.role !== 'admin') {
+        return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 });
+      }
+      // no filter — return everything
+    } else {
+      // public: approved listings, plus the viewer's own listings so they can see their pending ones
+      where.OR = [
+        { verificationStatus: 'approved' },
+        ...(user ? [{ postedByUserId: user.id }] : []),
+      ];
+    }
+
+    const rows = await prisma.property.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return NextResponse.json({ success: true, properties: rows.map(serializeProperty) });
+  } catch (err: any) {
+    console.error('GET /api/properties error', err);
+    return NextResponse.json({ success: false, error: 'Failed to load properties' }, { status: 500 });
+  }
+}
+
+// POST /api/properties — create a listing (auth required). Always starts pending review.
+export async function POST(req: NextRequest) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Please sign in to post a property.' }, { status: 401 });
+    }
+    if (user.isBlocked) {
+      return NextResponse.json({ success: false, error: 'Blocked accounts cannot post listings.' }, { status: 403 });
+    }
+
+    const b = (await req.json()) as Partial<Property>;
+
+    if (!b.price || !b.city || !b.locality) {
+      return NextResponse.json({ success: false, error: 'City, locality and price are required.' }, { status: 400 });
+    }
+
+    const created = await prisma.property.create({
+      data: {
+        title: b.title || 'Residential Property',
+        tagline: b.tagline,
+        listingType: b.listingType || 'buy',
+        category: b.category || 'Apartment',
+        city: b.city,
+        locality: b.locality,
+        subLocality: b.subLocality,
+        price: b.price,
+        priceFormatted: b.priceFormatted || `₹${b.price.toLocaleString('en-IN')}`,
+        pricePerSqFt: b.pricePerSqFt ?? (b.carpetAreaSqFt ? Math.round(b.price / b.carpetAreaSqFt) : undefined),
+        maintenance: b.maintenance,
+        bhk: b.bhk,
+        bathrooms: b.bathrooms ?? 1,
+        balconies: b.balconies,
+        carpetAreaSqFt: b.carpetAreaSqFt ?? 0,
+        superBuiltUpAreaSqFt: b.superBuiltUpAreaSqFt,
+        furnishing: b.furnishing || 'Unfurnished',
+        floor: b.floor,
+        totalFloors: b.totalFloors,
+        facing: b.facing,
+        constructionStatus: b.constructionStatus || 'Ready to Move',
+        possessionDate: b.possessionDate || 'Immediate',
+        reraId: b.reraId,
+        reraApproved: !!b.reraId,
+        // Enforced by server: new listings await admin verification.
+        isVerified: false,
+        verificationStatus: 'pending',
+        images: b.images && b.images.length > 0 ? b.images : [],
+        floorPlanImage: b.floorPlanImage,
+        description: b.description || 'Property listing.',
+        amenities: b.amenities || [],
+        documentsSubmitted: b.documentsSubmitted || [],
+        postedBy: (b.postedBy as object) || {
+          name: user.name,
+          type: user.role === 'builder' ? 'Builder' : user.role === 'agent' ? 'Verified Agent' : 'Owner',
+          phone: user.phone,
+          companyName: user.companyName,
+        },
+        nearbyLandmarks: (b.nearbyLandmarks as object) ?? undefined,
+        coordinates: (b.coordinates as object) ?? undefined,
+        postedByUserId: user.id,
+      },
+    });
+
+    await prisma.activityLog.create({
+      data: {
+        action: 'property_created',
+        actorName: user.name,
+        actorRole: user.role.toUpperCase(),
+        details: `Submitted new listing for review in ${created.city}.`,
+        targetTitle: created.title,
+        targetId: created.id,
+        severity: 'info',
+      },
+    });
+
+    return NextResponse.json({ success: true, property: serializeProperty(created) });
+  } catch (err: any) {
+    console.error('POST /api/properties error', err);
+    return NextResponse.json({ success: false, error: 'Failed to create listing' }, { status: 500 });
+  }
+}

@@ -1,0 +1,163 @@
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+import { INITIAL_PROPERTIES } from '../src/lib/realEstateData';
+import type { Property } from '../src/lib/types';
+
+const prisma = new PrismaClient();
+
+// Demo accounts — password shown so you can log in immediately.
+const DEMO_ACCOUNTS = [
+  { key: 'admin',   name: 'Rabnix Master Admin', email: 'admin@rabnixestate.com', phone: '+91 80000 99099', role: 'admin',   password: 'admin123',    city: 'National (HQ)', companyName: 'Rabnix Estate Verification Division' },
+  { key: 'owner',   name: 'Priya Venkatesh',     email: 'owner@rabnix.com',       phone: '+91 98450 11223', role: 'owner',   password: 'password123', city: 'Bangalore' },
+  { key: 'buyer',   name: 'Rahul Sharma',        email: 'buyer@rabnix.com',       phone: '+91 98765 43210', role: 'buyer',   password: 'password123', city: 'Bangalore' },
+  { key: 'agent',   name: 'Vikram Deshmukh',     email: 'agent@rabnix.com',       phone: '+91 98200 99887', role: 'agent',   password: 'password123', city: 'Mumbai',    companyName: 'Prestige Realty Advisors', reraNumber: 'PRM/KA/RERA/1251/310/AG/210412/00189' },
+  { key: 'builder', name: 'Amit Singhal',        email: 'builder@rabnix.com',     phone: '+91 99110 55443', role: 'builder', password: 'password123', city: 'Delhi / NCR', companyName: 'Godrej Properties Ltd', reraNumber: 'DLRERA2019P0004' },
+] as const;
+
+async function main() {
+  console.log('Seeding database...');
+
+  // Wipe (safe: dev seed) in FK-safe order.
+  await prisma.inquiry.deleteMany();
+  await prisma.activityLog.deleteMany();
+  await prisma.property.deleteMany();
+  await prisma.user.deleteMany();
+
+  // --- Users ---
+  const userIdByKey: Record<string, string> = {};
+  for (const acc of DEMO_ACCOUNTS) {
+    const passwordHash = await bcrypt.hash(acc.password, 10);
+    const user = await prisma.user.create({
+      data: {
+        name: acc.name,
+        email: acc.email,
+        phone: acc.phone,
+        passwordHash,
+        role: acc.role,
+        city: acc.city,
+        companyName: 'companyName' in acc ? acc.companyName : undefined,
+        reraNumber: 'reraNumber' in acc ? acc.reraNumber : undefined,
+        isPhoneVerified: true,
+        isEmailVerified: true,
+      },
+    });
+    userIdByKey[acc.key] = user.id;
+  }
+  console.log(`Created ${DEMO_ACCOUNTS.length} demo users.`);
+
+  // Map a property's poster type to one of our demo users.
+  const ownerFor = (p: Property): string | undefined => {
+    switch (p.postedBy?.type) {
+      case 'Builder': return userIdByKey.builder;
+      case 'Verified Agent': return userIdByKey.agent;
+      case 'Owner': return userIdByKey.owner;
+      default: return userIdByKey.owner;
+    }
+  };
+
+  // --- Properties --- (mirror propertyContext seed: a few pending/under_review/rejected)
+  let count = 0;
+  for (let idx = 0; idx < INITIAL_PROPERTIES.length; idx++) {
+    const p = INITIAL_PROPERTIES[idx];
+
+    let verificationStatus = 'approved';
+    let isVerified = true;
+    if (idx === 1) { verificationStatus = 'pending'; isVerified = false; }
+    else if (idx === 5) { verificationStatus = 'under_review'; isVerified = false; }
+    else if (idx === 7) { verificationStatus = 'rejected'; isVerified = false; }
+
+    await prisma.property.create({
+      data: {
+        id: p.id, // keep original seed ids
+        title: p.title,
+        tagline: p.tagline,
+        listingType: p.listingType,
+        category: p.category,
+        city: p.city,
+        locality: p.locality,
+        subLocality: p.subLocality,
+        price: p.price,
+        priceFormatted: p.priceFormatted,
+        pricePerSqFt: p.pricePerSqFt,
+        maintenance: p.maintenance,
+        bhk: p.bhk,
+        bathrooms: p.bathrooms,
+        balconies: p.balconies,
+        carpetAreaSqFt: p.carpetAreaSqFt,
+        superBuiltUpAreaSqFt: p.superBuiltUpAreaSqFt,
+        furnishing: p.furnishing,
+        floor: p.floor,
+        totalFloors: p.totalFloors,
+        facing: p.facing,
+        constructionStatus: p.constructionStatus,
+        possessionDate: p.possessionDate,
+        ageOfProperty: p.ageOfProperty,
+        reraId: p.reraId,
+        reraApproved: p.reraApproved,
+        isVerified,
+        verificationStatus,
+        rejectionReason: verificationStatus === 'rejected'
+          ? 'RERA registration number mismatch with state portal records. Please re-upload verified certificate.'
+          : undefined,
+        inquiriesCount: Math.floor(Math.random() * 18) + 2,
+        viewsCount: Math.floor(Math.random() * 320) + 45,
+        documentsSubmitted: [
+          'Encumbrance Certificate (EC)',
+          'Approved Floor Sanction Plan',
+          'Property Tax Clearance Receipt',
+        ],
+        isFeatured: p.isFeatured ?? false,
+        isExclusiveOwner: p.isExclusiveOwner ?? false,
+        priceDrop: p.priceDrop ?? false,
+        images: p.images,
+        floorPlanImage: p.floorPlanImage,
+        description: p.description,
+        amenities: p.amenities,
+        postedBy: p.postedBy as object,
+        nearbyLandmarks: (p.nearbyLandmarks ?? undefined) as object | undefined,
+        coordinates: (p.coordinates ?? undefined) as object | undefined,
+        postedByUserId: ownerFor(p),
+        createdAt: p.createdAt ? new Date(p.createdAt) : new Date(),
+      },
+    });
+    count++;
+  }
+  console.log(`Created ${count} properties.`);
+
+  // --- A couple of activity logs + one inquiry against a real property ---
+  const firstProp = INITIAL_PROPERTIES[0];
+  await prisma.inquiry.create({
+    data: {
+      propertyId: firstProp.id,
+      propertyTitle: firstProp.title,
+      sellerUserId: userIdByKey.builder,
+      buyerUserId: userIdByKey.buyer,
+      buyerName: 'Rahul Sharma',
+      buyerPhone: '+91 98765 43210',
+      buyerEmail: 'buyer@rabnix.com',
+      message: 'Interested in visiting this weekend. Is the price negotiable?',
+      preferredTime: 'Saturday 11:00 AM',
+      status: 'new',
+    },
+  });
+
+  await prisma.activityLog.createMany({
+    data: [
+      { action: 'property_verified', actorName: 'Rabnix Master Admin', actorRole: 'Admin', details: 'Awarded Green Verified Seal after RERA check.', targetTitle: firstProp.title, targetId: firstProp.id, severity: 'success' },
+      { action: 'user_registered', actorName: 'Rahul Sharma', actorRole: 'Buyer', details: 'New buyer account registered in Bangalore.', severity: 'info' },
+    ],
+  });
+
+  console.log('Seed complete.');
+  console.log('\nLogin credentials:');
+  console.table(DEMO_ACCOUNTS.map((a) => ({ role: a.role, email: a.email, password: a.password })));
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

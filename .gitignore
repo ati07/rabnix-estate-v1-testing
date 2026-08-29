@@ -5,3 +5,11 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# TypeScript incremental build cache
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# User-uploaded property images (local dev storage)
+/public/uploads/*
+!/public/uploads/.gitkeep

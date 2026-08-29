@@ -1,8 +1,9 @@
 'use client';
 
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/authContext';
 import { 
   Building2, 
   Home, 
@@ -19,7 +20,14 @@ import { AuthForm } from '@/components/AuthForm';
 
 function AuthPageContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const initialMode = searchParams?.get('mode') === 'signup' ? 'signup' : 'signin';
+
+  // Once signed in, leave the auth page for the home dashboard.
+  useEffect(() => {
+    if (isAuthenticated) router.replace('/');
+  }, [isAuthenticated, router]);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-between">
@@ -124,7 +132,7 @@ function AuthPageContent() {
           {/* Right Column: Interactive Sign In / Sign Up Form */}
           <div className="lg:col-span-6 flex justify-center">
             <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-[#E2E8F0] overflow-hidden">
-              <AuthForm initialMode={initialMode} />
+              <AuthForm initialMode={initialMode} onSuccess={() => router.replace('/')} />
             </div>
           </div>
 

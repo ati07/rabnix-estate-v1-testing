@@ -1,0 +1,130 @@
+// Rabnix Estate — Prisma schema (Postgres)
+// Mirrors src/lib/types.ts so the API returns objects the UI already expects.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String   @id @default(cuid())
+  name            String
+  email           String   @unique
+  phone           String
+  passwordHash    String
+  role            String   @default("buyer") // buyer | owner | agent | builder | admin
+  city            String?
+  avatar          String?
+  companyName     String?
+  reraNumber      String?
+  isPhoneVerified Boolean  @default(false)
+  isEmailVerified Boolean  @default(false)
+  isBlocked       Boolean  @default(false)
+  blockedReason   String?
+  blockedAt       String?
+  lastActive      String?
+  createdAt       DateTime @default(now())
+
+  properties      Property[]        @relation("PostedProperties")
+  inquiriesSent   Inquiry[]         @relation("BuyerInquiries")
+  inquiriesRecv   Inquiry[]         @relation("SellerInquiries")
+
+  @@index([role])
+}
+
+model Property {
+  id                   String   @id @default(cuid())
+  title                String
+  tagline              String?
+  listingType          String   // buy | rent | pg | plot | commercial
+  category             String
+  city                 String
+  locality             String
+  subLocality          String?
+  price                Int
+  priceFormatted       String
+  pricePerSqFt         Int?
+  maintenance          Int?
+  bhk                  Int?
+  bathrooms            Int      @default(1)
+  balconies            Int?
+  carpetAreaSqFt       Int      @default(0)
+  superBuiltUpAreaSqFt Int?
+  furnishing           String   @default("Unfurnished")
+  floor                Int?
+  totalFloors          Int?
+  facing               String?
+  constructionStatus   String   @default("Ready to Move")
+  possessionDate       String?
+  ageOfProperty        String?
+  reraId               String?
+  reraApproved         Boolean  @default(false)
+  isVerified           Boolean  @default(false)
+  verificationStatus   String   @default("pending") // approved | pending | rejected | under_review
+  rejectionReason      String?
+  inquiriesCount       Int      @default(0)
+  viewsCount           Int      @default(0)
+  documentsSubmitted   String[]
+  isFeatured           Boolean  @default(false)
+  isExclusiveOwner     Boolean  @default(false)
+  priceDrop            Boolean  @default(false)
+  images               String[]
+  floorPlanImage       String?
+  description          String
+  amenities            String[]
+  postedBy             Json     // embedded contact { name, type, phone, ... }
+  nearbyLandmarks      Json?
+  coordinates          Json?
+  createdAt            DateTime @default(now())
+
+  postedByUserId       String?
+  postedByUser         User?    @relation("PostedProperties", fields: [postedByUserId], references: [id], onDelete: SetNull)
+
+  inquiries            Inquiry[]
+
+  @@index([city])
+  @@index([listingType])
+  @@index([verificationStatus])
+  @@index([postedByUserId])
+}
+
+model Inquiry {
+  id            String   @id @default(cuid())
+  propertyId    String
+  propertyTitle String
+  sellerUserId  String?
+  buyerUserId   String?
+  buyerName     String
+  buyerPhone    String
+  buyerEmail    String
+  message       String
+  preferredTime String?
+  status        String   @default("new") // new | contacted | scheduled | closed
+  createdAt     DateTime @default(now())
+
+  property      Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  buyer         User?    @relation("BuyerInquiries", fields: [buyerUserId], references: [id], onDelete: SetNull)
+  seller        User?    @relation("SellerInquiries", fields: [sellerUserId], references: [id], onDelete: SetNull)
+
+  @@index([sellerUserId])
+  @@index([buyerUserId])
+  @@index([propertyId])
+}
+
+model ActivityLog {
+  id          String   @id @default(cuid())
+  action      String
+  actorName   String
+  actorRole   String
+  details     String
+  targetTitle String?
+  targetId    String?
+  severity    String   @default("info") // info | success | warning | danger
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}
