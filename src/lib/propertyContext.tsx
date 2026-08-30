@@ -84,7 +84,20 @@ export function PropertyProvider({ children }: { children: React.ReactNode }) {
     return () => { active = false; };
   }, [loadProperties]);
 
-  useEffect(() => { loadInquiries(); }, [loadInquiries]);
+  useEffect(() => {
+    let active = true;
+    if (!user) {
+      queueMicrotask(() => {
+        if (active) setInquiries([]);
+      });
+      return () => { active = false; };
+    }
+    api('/api/inquiries').then(({ ok, data }) => {
+      if (!active) return;
+      if (ok && data?.inquiries) setInquiries(data.inquiries);
+    });
+    return () => { active = false; };
+  }, [user]);
 
   // --- Shortlist (client-side for now) ---
   const persistShortlist = (next: string[]) => {

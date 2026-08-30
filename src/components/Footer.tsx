@@ -153,6 +153,16 @@ export function Footer({
                 </button>
               </li>
               <li>
+                <Link href="/collections" className="hover:text-white transition-colors text-[#22C39A] font-semibold">
+                  Curated Collections
+                </Link>
+              </li>
+              <li>
+                <Link href="/builders" className="hover:text-white transition-colors text-white font-semibold">
+                  Top Builders & Projects
+                </Link>
+              </li>
+              <li>
                 <Link href="/properties?filter=verified" className="hover:text-white transition-colors">
                   Verified Listings
                 </Link>

@@ -1,56 +1,119 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { 
   Building2, 
   Search, 
   MapPin, 
-  SlidersHorizontal, 
   ShieldCheck, 
   Heart, 
   Phone, 
-  MessageSquare, 
   ArrowUpDown, 
-  Check, 
   X, 
-  Sparkles,
-  Layers,
-  ArrowRight,
-  Filter,
-  CheckCircle2
+  ArrowRight, 
+  Tag, 
+  Home, 
+  Briefcase, 
+  Trees, 
+  BedDouble,
+  SlidersHorizontal,
+  RotateCcw,
+  Check,
+  ChevronRight
 } from 'lucide-react';
 import { useProperties } from '@/lib/propertyContext';
 import { useAuth } from '@/lib/authContext';
-import { ListingType, PropertyCategory, FurnishingStatus, ConstructionStatus, Property } from '@/lib/types';
+import { ListingType } from '@/lib/types';
 import { CITIES_DATA } from '@/lib/realEstateData';
 
-export default function PropertiesCatalogPage() {
-  const { properties, isShortlisted, toggleShortlist } = useProperties();
-  const { user } = useAuth();
+const ALL_CATEGORIES: { label: string; value: string; icon: any }[] = [
+  { label: 'All Categories', value: 'All', icon: Tag },
+  { label: 'Apartments', value: 'Apartment', icon: Building2 },
+  { label: 'Villas & Houses', value: 'Villa', icon: Home },
+  { label: 'Plots & Land', value: 'Residential Plot', icon: Trees },
+  { label: 'Commercial Office', value: 'Commercial Office', icon: Briefcase },
+  { label: 'PG & Co-Living', value: 'PG / Co-Living', icon: BedDouble }
+];
 
-  // Search & Filter State
-  const [selectedCity, setSelectedCity] = useState<string>('All');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [listingType, setListingType] = useState<ListingType | 'all'>('all');
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [selectedBhk, setSelectedBhk] = useState<number[]>([]);
+const LISTING_TYPES: { id: string; label: string }[] = [
+  { id: 'all', label: 'All Listings' },
+  { id: 'buy', label: 'Buy' },
+  { id: 'rent', label: 'Rent' },
+  { id: 'pg', label: 'PG / Co-Living' },
+  { id: 'commercial', label: 'Commercial' },
+  { id: 'plot', label: 'Plots' }
+];
+
+function PropertiesCatalogContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const { properties, isShortlisted, toggleShortlist } = useProperties();
+  const { user: _user } = useAuth();
+
+  // Derive initial values from URL Search Parameters
+  const urlCity = useMemo(() => {
+    const cityParam = searchParams.get('city');
+    if (!cityParam) return 'All';
+    const matchedCity = CITIES_DATA.find(
+      (c) => c.name.toLowerCase() === cityParam.toLowerCase() || c.code.toLowerCase() === cityParam.toLowerCase()
+    );
+    return matchedCity ? matchedCity.name : cityParam.toLowerCase() === 'all' ? 'All' : cityParam;
+  }, [searchParams]);
+
+  const urlCategory = useMemo(() => searchParams.get('category') || 'All', [searchParams]);
+  
+  const urlListingType = useMemo(() => {
+    const typeParam = searchParams.get('listingType') || searchParams.get('type');
+    if (typeParam && ['buy', 'rent', 'pg', 'commercial', 'plot'].includes(typeParam)) {
+      return typeParam as ListingType;
+    }
+    return 'all';
+  }, [searchParams]);
+
+  const urlSearchQuery = useMemo(() => searchParams.get('q') || searchParams.get('locality') || searchParams.get('search') || '', [searchParams]);
+
+  const urlBhk = useMemo(() => {
+    const bhkParam = searchParams.get('bhk');
+    if (bhkParam) {
+      const bhkNum = parseInt(bhkParam, 10);
+      if (!isNaN(bhkNum)) return [bhkNum];
+    }
+    return [];
+  }, [searchParams]);
+
+  // Local filter states (allows instant interactive filtering)
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string | null>(null);
+  const [listingType, setListingType] = useState<ListingType | 'all' | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedBhk, setSelectedBhk] = useState<number[] | null>(null);
   const [minPrice, setMinPrice] = useState<number>(0);
-  const [maxPrice, setMaxPrice] = useState<number>(50000000);
-  const [verifiedOnly, setVerifiedOnly] = useState<boolean>(false);
-  const [ownerOnly, setOwnerOnly] = useState<boolean>(false);
-  const [reraOnly, setReraOnly] = useState<boolean>(false);
+  const [maxPrice, setMaxPrice] = useState<number>(100000000);
+  const [verifiedOnly, setVerifiedOnly] = useState<boolean>(() => searchParams.get('verified') === 'true' || searchParams.get('isVerified') === 'true');
+  const [ownerOnly, setOwnerOnly] = useState<boolean>(() => searchParams.get('owner') === 'true' || searchParams.get('isOwner') === 'true');
+  const [reraOnly, setReraOnly] = useState<boolean>(() => searchParams.get('rera') === 'true' || searchParams.get('reraApproved') === 'true');
   const [furnishing, setFurnishing] = useState<string>('All');
+  const [constructionStatus, setConstructionStatus] = useState<string>('All');
   const [sortBy, setSortBy] = useState<'recommended' | 'price_asc' | 'price_desc' | 'area_desc'>('recommended');
+  
+  // Mobile filter drawer state
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  const activeCity = selectedCity !== null ? selectedCity : urlCity;
+  const activeCategory = selectedCategory !== null ? selectedCategory : urlCategory;
+  const activeListingType = listingType !== null ? listingType : urlListingType;
+  const activeSearchQuery = searchQuery !== null ? searchQuery : urlSearchQuery;
+  const activeBhk = selectedBhk !== null ? selectedBhk : urlBhk;
 
   // Toggle BHK
   const handleToggleBhk = (bhkVal: number) => {
-    if (selectedBhk.includes(bhkVal)) {
-      setSelectedBhk(selectedBhk.filter((b) => b !== bhkVal));
+    if (activeBhk.includes(bhkVal)) {
+      setSelectedBhk(activeBhk.filter((b) => b !== bhkVal));
     } else {
-      setSelectedBhk([...selectedBhk, bhkVal]);
+      setSelectedBhk([...activeBhk, bhkVal]);
     }
   };
 
@@ -62,12 +125,14 @@ export default function PropertiesCatalogPage() {
     setSelectedCategory('All');
     setSelectedBhk([]);
     setMinPrice(0);
-    setMaxPrice(50000000);
+    setMaxPrice(100000000);
     setVerifiedOnly(false);
     setOwnerOnly(false);
     setReraOnly(false);
     setFurnishing('All');
+    setConstructionStatus('All');
     setSortBy('recommended');
+    router.replace('/properties');
   };
 
   // Filter and Sort Logic
@@ -75,19 +140,19 @@ export default function PropertiesCatalogPage() {
     return properties
       .filter((p) => {
         // City filter
-        if (selectedCity !== 'All' && p.city.toLowerCase() !== selectedCity.toLowerCase()) {
+        if (activeCity !== 'All' && p.city.toLowerCase() !== activeCity.toLowerCase()) {
           return false;
         }
         // Listing Type filter
-        if (listingType !== 'all' && p.listingType !== listingType) {
+        if (activeListingType !== 'all' && p.listingType !== activeListingType) {
           return false;
         }
         // Category filter
-        if (selectedCategory !== 'All' && p.category !== selectedCategory) {
+        if (activeCategory !== 'All' && p.category.toLowerCase() !== activeCategory.toLowerCase()) {
           return false;
         }
         // BHK filter
-        if (selectedBhk.length > 0 && p.bhk && !selectedBhk.includes(p.bhk)) {
+        if (activeBhk.length > 0 && p.bhk && !activeBhk.includes(p.bhk)) {
           return false;
         }
         // Price filter
@@ -110,9 +175,13 @@ export default function PropertiesCatalogPage() {
         if (furnishing !== 'All' && p.furnishing !== furnishing) {
           return false;
         }
+        // Construction Status
+        if (constructionStatus !== 'All' && p.constructionStatus !== constructionStatus) {
+          return false;
+        }
         // Search Query
-        if (searchQuery.trim()) {
-          const q = searchQuery.toLowerCase();
+        if (activeSearchQuery.trim()) {
+          const q = activeSearchQuery.toLowerCase();
           const matchTitle = p.title.toLowerCase().includes(q);
           const matchLocality = p.locality.toLowerCase().includes(q);
           const matchCity = p.city.toLowerCase().includes(q);
@@ -131,19 +200,268 @@ export default function PropertiesCatalogPage() {
       });
   }, [
     properties,
-    selectedCity,
-    listingType,
-    selectedCategory,
-    selectedBhk,
+    activeCity,
+    activeListingType,
+    activeCategory,
+    activeBhk,
     minPrice,
     maxPrice,
     verifiedOnly,
     ownerOnly,
     reraOnly,
     furnishing,
-    searchQuery,
+    constructionStatus,
+    activeSearchQuery,
     sortBy
   ]);
+
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (activeCity !== 'All') count++;
+    if (activeCategory !== 'All') count++;
+    if (activeListingType !== 'all') count++;
+    if (activeBhk.length > 0) count += activeBhk.length;
+    if (verifiedOnly) count++;
+    if (ownerOnly) count++;
+    if (reraOnly) count++;
+    if (furnishing !== 'All') count++;
+    if (constructionStatus !== 'All') count++;
+    if (minPrice > 0 || maxPrice < 100000000) count++;
+    if (activeSearchQuery.trim()) count++;
+    return count;
+  }, [
+    activeCity,
+    activeCategory,
+    activeListingType,
+    activeBhk,
+    verifiedOnly,
+    ownerOnly,
+    reraOnly,
+    furnishing,
+    constructionStatus,
+    minPrice,
+    maxPrice,
+    activeSearchQuery
+  ]);
+
+  // Sidebar Filter Form Component
+  const FilterSidebarContent = (
+    <div className="space-y-6">
+      {/* Header with Title and Reset */}
+      <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
+        <div className="flex items-center gap-2">
+          <SlidersHorizontal className="w-4 h-4 text-[#18A67D]" />
+          <h2 className="text-sm font-extrabold text-[#0F2A43] uppercase tracking-wide">Filters</h2>
+          {activeFiltersCount > 0 && (
+            <span className="w-5 h-5 rounded-full bg-[#18A67D] text-white text-[11px] font-bold flex items-center justify-center">
+              {activeFiltersCount}
+            </span>
+          )}
+        </div>
+        {activeFiltersCount > 0 && (
+          <button
+            onClick={handleResetFilters}
+            className="text-xs font-bold text-rose-600 hover:text-rose-700 flex items-center gap-1 cursor-pointer transition-colors"
+          >
+            <RotateCcw className="w-3 h-3" />
+            <span>Reset</span>
+          </button>
+        )}
+      </div>
+
+      {/* City Selector */}
+      <div className="space-y-2">
+        <label className="text-xs font-bold text-[#0F2A43] uppercase tracking-wider block">
+          Target City
+        </label>
+        <div className="relative">
+          <MapPin className="w-4 h-4 text-[#18A67D] absolute left-3 top-3 pointer-events-none" />
+          <select
+            value={activeCity}
+            onChange={(e) => setSelectedCity(e.target.value)}
+            className="w-full pl-9 pr-3 py-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs font-bold text-[#0F2A43] outline-none cursor-pointer focus:border-[#18A67D] focus:bg-white"
+          >
+            <option value="All">All Cities</option>
+            {CITIES_DATA.map((c) => (
+              <option key={c.name} value={c.name}>
+                {c.name} ({c.state})
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Listing Purpose / Type */}
+      <div className="space-y-2">
+        <label className="text-xs font-bold text-[#0F2A43] uppercase tracking-wider block">
+          Listing Type
+        </label>
+        <div className="grid grid-cols-2 gap-1.5">
+          {LISTING_TYPES.map((type) => {
+            const isSelected = activeListingType === type.id;
+            return (
+              <button
+                key={type.id}
+                type="button"
+                onClick={() => setListingType(type.id as any)}
+                className={`py-2 px-3 rounded-xl text-xs font-bold text-center transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-[#0F2A43] text-white shadow-xs'
+                    : 'bg-[#F8FAFC] text-[#475569] hover:bg-[#F1F5F9] border border-[#E2E8F0]'
+                }`}
+              >
+                {type.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Property Category */}
+      <div className="space-y-2">
+        <label className="text-xs font-bold text-[#0F2A43] uppercase tracking-wider block">
+          Property Category
+        </label>
+        <div className="space-y-1">
+          {ALL_CATEGORIES.map((cat) => {
+            const Icon = cat.icon;
+            const isSelected = activeCategory.toLowerCase() === cat.value.toLowerCase();
+            return (
+              <button
+                key={cat.value}
+                type="button"
+                onClick={() => setSelectedCategory(cat.value)}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-[#E7F6F1] text-[#0E7C5D] border border-[#18A67D]'
+                    : 'bg-[#F8FAFC] text-[#475569] hover:bg-[#F1F5F9] border border-transparent'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-[#18A67D]' : 'text-[#64748B]'}`} />
+                  <span>{cat.label}</span>
+                </div>
+                {isSelected && <Check className="w-3.5 h-3.5 text-[#18A67D]" />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* BHK Selection */}
+      <div className="space-y-2">
+        <label className="text-xs font-bold text-[#0F2A43] uppercase tracking-wider block">
+          Bedrooms (BHK)
+        </label>
+        <div className="flex items-center gap-1.5">
+          {[1, 2, 3, 4, 5].map((bhk) => {
+            const isSelected = activeBhk.includes(bhk);
+            return (
+              <button
+                key={bhk}
+                type="button"
+                onClick={() => handleToggleBhk(bhk)}
+                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-[#0F2A43] text-white shadow-xs'
+                    : 'bg-[#F8FAFC] text-[#475569] border border-[#E2E8F0] hover:bg-[#F1F5F9]'
+                }`}
+              >
+                {bhk} {bhk === 5 ? '5+' : 'BHK'}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Verified & Zero Brokerage Toggles */}
+      <div className="space-y-2 pt-2 border-t border-[#E2E8F0]">
+        <label className="text-xs font-bold text-[#0F2A43] uppercase tracking-wider block">
+          Verification & Brokerage
+        </label>
+        
+        {/* Verified Only */}
+        <label className="flex items-center justify-between p-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] hover:bg-[#F1F5F9] cursor-pointer transition-colors">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-[#18A67D]" />
+            <span className="text-xs font-bold text-[#0F2A43]">Verified Properties</span>
+          </div>
+          <input
+            type="checkbox"
+            checked={verifiedOnly}
+            onChange={(e) => setVerifiedOnly(e.target.checked)}
+            className="w-4 h-4 accent-[#18A67D] rounded cursor-pointer"
+          />
+        </label>
+
+        {/* 0% Brokerage Direct Owner */}
+        <label className="flex items-center justify-between p-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] hover:bg-[#F1F5F9] cursor-pointer transition-colors">
+          <div className="flex items-center gap-2">
+            <Tag className="w-4 h-4 text-amber-500" />
+            <div>
+              <span className="text-xs font-bold text-[#0F2A43] block leading-tight">0% Brokerage</span>
+              <span className="text-[10px] text-[#64748B]">Direct Owner Postings</span>
+            </div>
+          </div>
+          <input
+            type="checkbox"
+            checked={ownerOnly}
+            onChange={(e) => setOwnerOnly(e.target.checked)}
+            className="w-4 h-4 accent-[#18A67D] rounded cursor-pointer"
+          />
+        </label>
+
+        {/* RERA Registered */}
+        <label className="flex items-center justify-between p-2.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] hover:bg-[#F1F5F9] cursor-pointer transition-colors">
+          <div className="flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-[#0F2A43]" />
+            <span className="text-xs font-bold text-[#0F2A43]">RERA Registered</span>
+          </div>
+          <input
+            type="checkbox"
+            checked={reraOnly}
+            onChange={(e) => setReraOnly(e.target.checked)}
+            className="w-4 h-4 accent-[#18A67D] rounded cursor-pointer"
+          />
+        </label>
+      </div>
+
+      {/* Furnishing Status */}
+      <div className="space-y-2 pt-2 border-t border-[#E2E8F0]">
+        <label className="text-xs font-bold text-[#0F2A43] uppercase tracking-wider block">
+          Furnishing
+        </label>
+        <select
+          value={furnishing}
+          onChange={(e) => setFurnishing(e.target.value)}
+          className="w-full p-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs font-semibold text-[#0F2A43] outline-none cursor-pointer"
+        >
+          <option value="All">All Furnishing Types</option>
+          <option value="Furnished">Fully Furnished</option>
+          <option value="Semi-Furnished">Semi-Furnished</option>
+          <option value="Unfurnished">Unfurnished</option>
+        </select>
+      </div>
+
+      {/* Construction Status */}
+      <div className="space-y-2">
+        <label className="text-xs font-bold text-[#0F2A43] uppercase tracking-wider block">
+          Possession Status
+        </label>
+        <select
+          value={constructionStatus}
+          onChange={(e) => setConstructionStatus(e.target.value)}
+          className="w-full p-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs font-semibold text-[#0F2A43] outline-none cursor-pointer"
+        >
+          <option value="All">All Statuses</option>
+          <option value="Ready to Move">Ready to Move</option>
+          <option value="Under Construction">Under Construction</option>
+          <option value="New Launch">New Launch</option>
+        </select>
+      </div>
+
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-between">
@@ -164,6 +482,12 @@ export default function PropertiesCatalogPage() {
 
           <div className="flex items-center gap-3">
             <Link
+              href="/"
+              className="text-xs sm:text-sm font-bold text-[#0F2A43] hover:text-[#18A67D] px-3 py-1.5 rounded-lg border border-[#E2E8F0] hover:bg-[#F8FAFC] transition-colors"
+            >
+              Home
+            </Link>
+            <Link
               href="/dashboard"
               className="text-xs sm:text-sm font-bold text-[#0F2A43] hover:text-[#18A67D] px-3 py-1.5 rounded-lg border border-[#E2E8F0] hover:bg-[#F8FAFC] transition-colors"
             >
@@ -179,292 +503,360 @@ export default function PropertiesCatalogPage() {
         </div>
       </header>
 
-      {/* Main Catalog Workspace */}
-      <main className="max-w-7xl mx-auto w-full px-4 sm:px-8 py-6 space-y-6 flex-1">
-        
-        {/* Search & Listing Type Bar */}
-        <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-xs border border-[#E2E8F0] space-y-4">
-          
-          {/* Listing Type Pills */}
-          <div className="flex flex-wrap items-center gap-2 pb-2 border-b border-[#E2E8F0]">
-            {[
-              { id: 'all', label: 'All Properties' },
-              { id: 'buy', label: 'Buy (Ready & Launch)' },
-              { id: 'rent', label: 'Rentals & Leases' },
-              { id: 'pg', label: 'PG / Co-Living' },
-              { id: 'commercial', label: 'Commercial' },
-              { id: 'plot', label: 'Plots & Land' }
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setListingType(tab.id as any)}
-                className={`py-1.5 px-3.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  listingType === tab.id
-                    ? 'bg-[#0F2A43] text-white shadow-xs'
-                    : 'bg-[#F8FAFC] text-[#64748B] hover:text-[#0F2A43] hover:bg-[#F1F5F9]'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+      {/* Breadcrumbs & Catalog Title Banner */}
+      <div className="bg-white border-b border-[#E2E8F0] py-4 px-4 sm:px-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Breadcrumb Navigation */}
+          <div className="flex items-center gap-1.5 text-xs text-[#64748B] mb-2 font-medium">
+            <Link href="/" className="hover:text-[#0F2A43] transition-colors">Home</Link>
+            <ChevronRight className="w-3 h-3 text-[#94A3B8]" />
+            <Link href="/properties" className="hover:text-[#0F2A43] transition-colors">Properties</Link>
+            {activeCity !== 'All' && (
+              <>
+                <ChevronRight className="w-3 h-3 text-[#94A3B8]" />
+                <span className="text-[#0F2A43] font-bold">{activeCity}</span>
+              </>
+            )}
+            {activeCategory !== 'All' && (
+              <>
+                <ChevronRight className="w-3 h-3 text-[#94A3B8]" />
+                <span className="text-[#18A67D] font-bold">{activeCategory}</span>
+              </>
+            )}
           </div>
 
-          {/* Search Inputs Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-            
-            {/* City Dropdown */}
-            <div className="sm:col-span-3">
-              <select
-                value={selectedCity}
-                onChange={(e) => setSelectedCity(e.target.value)}
-                className="w-full p-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs sm:text-sm font-bold text-[#0F2A43] outline-none"
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-[#0F2A43] tracking-tight">
+                {activeCategory !== 'All' ? activeCategory : 'Properties'}
+                {activeCity !== 'All' && <span> in {activeCity}</span>}
+                <span className="text-sm font-bold text-[#64748B] ml-2 font-normal">
+                  ({filteredProperties.length} verified listings)
+                </span>
+              </h1>
+              <p className="text-xs text-[#64748B] mt-0.5">
+                Verified legal titles, price valuations, RERA compliance & 0% brokerage owner listings
+              </p>
+            </div>
+
+            {/* Mobile Filter Toggle Button */}
+            <div className="flex items-center gap-2 lg:hidden">
+              <button
+                onClick={() => setIsMobileFilterOpen(true)}
+                className="w-full sm:w-auto px-4 py-2.5 bg-[#0F2A43] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-xs cursor-pointer"
               >
-                <option value="All">All Indian Cities</option>
-                {CITIES_DATA.map((c) => (
-                  <option key={c.name} value={c.name}>{c.name}</option>
-                ))}
-              </select>
+                <SlidersHorizontal className="w-3.5 h-3.5 text-[#18A67D]" />
+                <span>Filters {activeFiltersCount > 0 ? `(${activeFiltersCount})` : ''}</span>
+              </button>
             </div>
+          </div>
+        </div>
+      </div>
 
-            {/* Keyword Search */}
-            <div className="sm:col-span-6 relative">
-              <Search className="w-4 h-4 text-[#94A3B8] absolute left-3 top-3.5" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by locality, project name, landmark, or BHK..."
-                className="w-full pl-9 pr-4 py-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs sm:text-sm font-medium text-[#0F2A43] outline-none focus:bg-white focus:border-[#18A67D]"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-3 text-[#94A3B8] hover:text-[#0F2A43]"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
+      {/* Main Two-Column Layout (Left Filter Sidebar + Right Properties Area) */}
+      <div className="max-w-7xl mx-auto w-full px-4 sm:px-8 py-6 flex-1">
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
+          
+          {/* ========================================================= */}
+          {/* LEFT SIDEBAR FILTER (Sticky Desktop)                      */}
+          {/* ========================================================= */}
+          <aside className="hidden lg:block w-72 xl:w-80 shrink-0 sticky top-24 bg-white p-5 rounded-2xl border border-[#E2E8F0] shadow-xs">
+            {FilterSidebarContent}
+          </aside>
+
+          {/* ========================================================= */}
+          {/* MOBILE FILTER MODAL / DRAWER                              */}
+          {/* ========================================================= */}
+          {isMobileFilterOpen && (
+            <div className="fixed inset-0 z-50 flex bg-black/60 backdrop-blur-xs lg:hidden">
+              <div className="w-full max-w-sm bg-white h-full overflow-y-auto p-5 flex flex-col justify-between shadow-2xl ml-auto animate-in slide-in-from-right">
+                <div>
+                  <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0] mb-4">
+                    <h3 className="text-sm font-extrabold text-[#0F2A43]">Filters & Preferences</h3>
+                    <button
+                      onClick={() => setIsMobileFilterOpen(false)}
+                      className="w-8 h-8 rounded-full bg-[#F1F5F9] flex items-center justify-center text-[#64748B] hover:text-[#0F2A43] cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {FilterSidebarContent}
+                </div>
+
+                <div className="pt-4 border-t border-[#E2E8F0] mt-6">
+                  <button
+                    onClick={() => setIsMobileFilterOpen(false)}
+                    className="w-full py-3 bg-[#18A67D] hover:bg-[#0E7C5D] text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                  >
+                    Apply Filters ({filteredProperties.length} Listings)
+                  </button>
+                </div>
+              </div>
             </div>
+          )}
 
-            {/* Sort Dropdown */}
-            <div className="sm:col-span-3">
-              <div className="flex items-center gap-1.5">
+          {/* ========================================================= */}
+          {/* RIGHT MAIN CONTENT AREA                                    */}
+          {/* ========================================================= */}
+          <main className="flex-1 min-w-0 w-full space-y-4">
+            
+            {/* Search & Sort Controls Bar */}
+            <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-[#E2E8F0] shadow-xs flex flex-col sm:flex-row items-center gap-3">
+              
+              {/* Search Locality / Landmark */}
+              <div className="relative flex-1 w-full">
+                <Search className="w-4 h-4 text-[#94A3B8] absolute left-3 top-3" />
+                <input
+                  type="text"
+                  value={activeSearchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search by locality, project name, landmark, or builder..."
+                  className="w-full pl-9 pr-8 py-2 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs sm:text-sm font-medium text-[#0F2A43] outline-none focus:bg-white focus:border-[#18A67D]"
+                />
+                {activeSearchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-2.5 text-[#94A3B8] hover:text-[#0F2A43] cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Sort By Dropdown */}
+              <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
                 <ArrowUpDown className="w-4 h-4 text-[#64748B] shrink-0" />
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as any)}
-                  className="w-full p-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs sm:text-sm font-semibold text-[#0F2A43] outline-none"
+                  className="w-full sm:w-auto px-3 py-2 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs font-semibold text-[#0F2A43] outline-none cursor-pointer"
                 >
                   <option value="recommended">Recommended & Verified</option>
                   <option value="price_asc">Price: Low to High</option>
                   <option value="price_desc">Price: High to Low</option>
-                  <option value="area_desc">Largest Area First</option>
+                  <option value="area_desc">Largest Carpet Area</option>
                 </select>
               </div>
+
             </div>
 
-          </div>
+            {/* Active Filter Badges */}
+            {activeFiltersCount > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 text-xs py-1">
+                <span className="text-[11px] font-bold text-[#64748B] uppercase mr-1">Active:</span>
+                
+                {activeCity !== 'All' && (
+                  <span className="bg-white border border-[#CBD5E1] text-[#0F2A43] px-2.5 py-1 rounded-full font-bold flex items-center gap-1 shadow-2xs">
+                    <MapPin className="w-3 h-3 text-[#18A67D]" />
+                    {activeCity}
+                    <button onClick={() => setSelectedCity('All')} className="hover:text-rose-600 ml-0.5 cursor-pointer">×</button>
+                  </span>
+                )}
 
-          {/* Quick Filter Chips */}
-          <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
-            <span className="text-[11px] font-bold text-[#64748B] uppercase">Quick Filters:</span>
-            
-            <button
-              onClick={() => setVerifiedOnly(!verifiedOnly)}
-              className={`px-2.5 py-1 rounded-lg border font-bold flex items-center gap-1 transition-colors cursor-pointer ${
-                verifiedOnly
-                  ? 'bg-[#E7F6F1] border-[#18A67D] text-[#0E7C5D]'
-                  : 'bg-white border-[#E2E8F0] text-[#64748B] hover:border-[#CBD5E1]'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-[#18A67D]" />
-              <span>Verified Only</span>
-            </button>
+                {activeCategory !== 'All' && (
+                  <span className="bg-[#E7F6F1] border border-[#18A67D] text-[#0E7C5D] px-2.5 py-1 rounded-full font-bold flex items-center gap-1 shadow-2xs">
+                    <Tag className="w-3 h-3" />
+                    {activeCategory}
+                    <button onClick={() => setSelectedCategory('All')} className="hover:text-rose-600 ml-0.5 cursor-pointer">×</button>
+                  </span>
+                )}
 
-            <button
-              onClick={() => setOwnerOnly(!ownerOnly)}
-              className={`px-2.5 py-1 rounded-lg border font-bold flex items-center gap-1 transition-colors cursor-pointer ${
-                ownerOnly
-                  ? 'bg-amber-50 border-amber-300 text-amber-900'
-                  : 'bg-white border-[#E2E8F0] text-[#64748B] hover:border-[#CBD5E1]'
-              }`}
-            >
-              <span>0% Brokerage (Owner)</span>
-            </button>
+                {activeListingType !== 'all' && (
+                  <span className="bg-[#0F2A43] text-white px-2.5 py-1 rounded-full font-bold flex items-center gap-1 shadow-2xs">
+                    <span className="capitalize">{activeListingType}</span>
+                    <button onClick={() => setListingType('all')} className="hover:text-rose-300 ml-0.5 cursor-pointer">×</button>
+                  </span>
+                )}
 
-            <button
-              onClick={() => setReraOnly(!reraOnly)}
-              className={`px-2.5 py-1 rounded-lg border font-bold flex items-center gap-1 transition-colors cursor-pointer ${
-                reraOnly
-                  ? 'bg-[#0F2A43] border-[#0F2A43] text-white'
-                  : 'bg-white border-[#E2E8F0] text-[#64748B] hover:border-[#CBD5E1]'
-              }`}
-            >
-              <span>RERA Registered</span>
-            </button>
+                {activeBhk.map((b) => (
+                  <span key={b} className="bg-slate-100 border border-slate-300 text-[#0F2A43] px-2.5 py-1 rounded-full font-bold flex items-center gap-1 shadow-2xs">
+                    <span>{b} BHK</span>
+                    <button onClick={() => handleToggleBhk(b)} className="hover:text-rose-600 ml-0.5 cursor-pointer">×</button>
+                  </span>
+                ))}
 
-            {(verifiedOnly || ownerOnly || reraOnly || selectedBhk.length > 0 || selectedCity !== 'All' || searchQuery) && (
-              <button
-                onClick={handleResetFilters}
-                className="text-xs text-rose-600 font-bold hover:underline ml-auto cursor-pointer"
-              >
-                Reset All Filters
-              </button>
-            )}
-          </div>
+                {verifiedOnly && (
+                  <span className="bg-[#E7F6F1] border border-[#18A67D] text-[#0E7C5D] px-2.5 py-1 rounded-full font-bold flex items-center gap-1 shadow-2xs">
+                    <ShieldCheck className="w-3 h-3" />
+                    Verified Only
+                    <button onClick={() => setVerifiedOnly(false)} className="hover:text-rose-600 ml-0.5 cursor-pointer">×</button>
+                  </span>
+                )}
 
-        </div>
+                {ownerOnly && (
+                  <span className="bg-amber-50 border border-amber-300 text-amber-900 px-2.5 py-1 rounded-full font-bold flex items-center gap-1 shadow-2xs">
+                    0% Brokerage
+                    <button onClick={() => setOwnerOnly(false)} className="hover:text-rose-600 ml-0.5 cursor-pointer">×</button>
+                  </span>
+                )}
 
-        {/* Results Info & Count */}
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-extrabold text-[#0F2A43]">
-            Showing <span className="text-[#18A67D]">{filteredProperties.length}</span> Verified Properties
-            {selectedCity !== 'All' && ` in ${selectedCity}`}
-          </div>
+                {reraOnly && (
+                  <span className="bg-slate-800 text-white px-2.5 py-1 rounded-full font-bold flex items-center gap-1 shadow-2xs">
+                    RERA Registered
+                    <button onClick={() => setReraOnly(false)} className="hover:text-rose-300 ml-0.5 cursor-pointer">×</button>
+                  </span>
+                )}
 
-          <div className="text-xs text-[#64748B]">
-            All prices in Indian Rupees (INR)
-          </div>
-        </div>
-
-        {/* Property Grid */}
-        {filteredProperties.length === 0 ? (
-          <div className="bg-white p-12 rounded-2xl border border-[#E2E8F0] text-center space-y-4 shadow-xs">
-            <Building2 className="w-12 h-12 text-[#94A3B8] mx-auto" />
-            <h3 className="text-lg font-bold text-[#0F2A43]">No Properties Matched Your Criteria</h3>
-            <p className="text-xs sm:text-sm text-[#64748B] max-w-md mx-auto">
-              Try adjusting your price range, BHK configuration, or search in other prominent localities.
-            </p>
-            <button
-              type="button"
-              onClick={handleResetFilters}
-              className="px-5 py-2.5 bg-[#18A67D] hover:bg-[#0E7C5D] text-white text-xs font-bold rounded-xl cursor-pointer"
-            >
-              Reset All Filters
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProperties.map((prop) => {
-              const favorite = isShortlisted(prop.id);
-              return (
-                <div
-                  key={prop.id}
-                  className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
+                <button
+                  onClick={handleResetFilters}
+                  className="text-xs text-rose-600 font-bold hover:underline ml-2 cursor-pointer"
                 >
-                  <div>
-                    {/* Card Image Box */}
-                    <div className="relative aspect-16/10 bg-slate-100 overflow-hidden">
-                      <Image
-                        src={prop.images[0]}
-                        alt={prop.title}
-                        fill
-                        className="object-cover group-hover:scale-104 transition-transform duration-500"
-                        referrerPolicy="no-referrer"
-                      />
+                  Clear all
+                </button>
+              </div>
+            )}
 
-                      {/* Top Badges */}
-                      <div className="absolute top-2.5 left-2.5 flex flex-wrap gap-1.5">
-                        <span className="bg-[#0F2A43]/90 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-md uppercase">
-                          {prop.category}
-                        </span>
-                        {prop.isVerified && (
-                          <span className="bg-[#18A67D] text-white text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-xs">
-                            <ShieldCheck className="w-3 h-3" />
-                            Verified
-                          </span>
-                        )}
-                        {prop.postedBy.type === 'Owner' && (
-                          <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md">
-                            0% Brokerage
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Shortlist Heart Button */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          toggleShortlist(prop.id);
-                        }}
-                        className={`absolute top-2.5 right-2.5 p-2 rounded-full backdrop-blur-md transition-all cursor-pointer ${
-                          favorite
-                            ? 'bg-rose-500 text-white'
-                            : 'bg-black/40 text-white hover:bg-black/60'
-                        }`}
-                      >
-                        <Heart className={`w-4 h-4 ${favorite ? 'fill-white' : ''}`} />
-                      </button>
-
-                      {/* Bottom Image Strip */}
-                      <div className="absolute bottom-2 left-2.5 bg-black/60 backdrop-blur-xs text-white text-[10px] font-medium px-2 py-0.5 rounded">
-                        {prop.bhk ? `${prop.bhk} BHK • ` : ''}{prop.carpetAreaSqFt} sq.ft
-                      </div>
-                    </div>
-
-                    {/* Card Content */}
-                    <div className="p-5 space-y-3">
-                      
-                      {/* Price & Location */}
-                      <div>
-                        <div className="text-xl font-black text-[#0E7C5D]">
-                          {prop.priceFormatted}
-                        </div>
-                        <h3 className="text-sm font-bold text-[#0F2A43] truncate mt-0.5" title={prop.title}>
-                          {prop.title}
-                        </h3>
-                        <div className="flex items-center gap-1 text-xs text-[#64748B] mt-1">
-                          <MapPin className="w-3.5 h-3.5 text-[#18A67D] shrink-0" />
-                          <span className="truncate">{prop.locality}, {prop.city}</span>
-                        </div>
-                      </div>
-
-                      {/* Spec Badges */}
-                      <div className="grid grid-cols-3 gap-1.5 py-2 border-y border-[#F1F5F9] text-center text-[11px]">
-                        <div className="space-y-0.5">
-                          <span className="text-[#94A3B8] block text-[10px]">Furnishing</span>
-                          <span className="font-bold text-[#0F2A43] truncate block">{prop.furnishing}</span>
-                        </div>
-                        <div className="space-y-0.5">
-                          <span className="text-[#94A3B8] block text-[10px]">Status</span>
-                          <span className="font-bold text-[#0F2A43] truncate block">{prop.constructionStatus}</span>
-                        </div>
-                        <div className="space-y-0.5">
-                          <span className="text-[#94A3B8] block text-[10px]">Posted By</span>
-                          <span className="font-bold text-[#0E7C5D] truncate block">{prop.postedBy.type}</span>
-                        </div>
-                      </div>
-
-                    </div>
-                  </div>
-
-                  {/* Card Actions Footer */}
-                  <div className="p-5 pt-0 flex items-center gap-2">
-                    <Link
-                      href={`/properties/${prop.id}`}
-                      className="flex-1 py-2.5 bg-[#0F2A43] hover:bg-[#163b5c] text-white text-xs font-bold rounded-xl text-center transition-colors flex items-center justify-center gap-1"
-                    >
-                      <span>View Details</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
-                    <a
-                      href={`tel:${prop.postedBy.phone}`}
-                      className="p-2.5 bg-[#E7F6F1] hover:bg-[#d0f0e6] text-[#0E7C5D] rounded-xl border border-[#18A67D]/20 transition-colors"
-                      title="Call Seller"
-                    >
-                      <Phone className="w-4 h-4" />
-                    </a>
-                  </div>
-
+            {/* Properties Grid */}
+            {filteredProperties.length === 0 ? (
+              <div className="bg-white p-12 text-center rounded-2xl border border-[#E2E8F0] space-y-4 shadow-xs">
+                <div className="w-16 h-16 bg-[#F8FAFC] border border-[#E2E8F0] rounded-full flex items-center justify-center mx-auto text-[#94A3B8]">
+                  <Building2 className="w-8 h-8" />
                 </div>
-              );
-            })}
-          </div>
-        )}
+                <div className="max-w-md mx-auto space-y-1">
+                  <h3 className="text-lg font-bold text-[#0F2A43]">No matching properties found</h3>
+                  <p className="text-xs text-[#64748B]">
+                    We couldn&apos;t find listings matching your filters ({activeCategory !== 'All' ? activeCategory : ''} in {activeCity}). Try expanding your criteria or resetting filters.
+                  </p>
+                </div>
+                <button
+                  onClick={handleResetFilters}
+                  className="px-5 py-2.5 bg-[#0F2A43] hover:bg-[#18A67D] text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                >
+                  Reset Filters & Show All
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
+                {filteredProperties.map((prop) => {
+                  const shortlisted = isShortlisted(prop.id);
 
-      </main>
+                  return (
+                    <div
+                      key={prop.id}
+                      className="bg-white rounded-2xl border border-[#E2E8F0] overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col justify-between group"
+                    >
+                      <div>
+                        {/* Image Carousel / Banner */}
+                        <div className="relative h-56 w-full overflow-hidden bg-slate-100">
+                          <Image
+                            src={prop.images[0] || 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80'}
+                            alt={prop.title}
+                            fill
+                            referrerPolicy="no-referrer"
+                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+
+                          {/* Top Badges */}
+                          <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="bg-[#0F2A43]/90 backdrop-blur-xs text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded">
+                                {prop.category}
+                              </span>
+                              {prop.isVerified && (
+                                <span className="bg-[#18A67D] text-white text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-0.5 shadow-xs">
+                                  <ShieldCheck className="w-3 h-3" />
+                                  <span>Verified</span>
+                                </span>
+                              )}
+                              {prop.postedBy.type === 'Owner' && (
+                                <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-xs">
+                                  0% Brokerage
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Shortlist Heart Button */}
+                            <button
+                              onClick={() => toggleShortlist(prop.id)}
+                              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all cursor-pointer backdrop-blur-xs shadow-xs ${
+                                shortlisted
+                                  ? 'bg-rose-500 text-white'
+                                  : 'bg-black/40 text-white hover:bg-black/60'
+                              }`}
+                              title={shortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}
+                            >
+                              <Heart className={`w-4 h-4 ${shortlisted ? 'fill-current' : ''}`} />
+                            </button>
+                          </div>
+
+                          {/* Bottom Image Strip */}
+                          <div className="absolute bottom-2 left-2.5 bg-black/60 backdrop-blur-xs text-white text-[10px] font-medium px-2 py-0.5 rounded">
+                            {prop.bhk ? `${prop.bhk} BHK • ` : ''}{prop.carpetAreaSqFt} sq.ft
+                          </div>
+                        </div>
+
+                        {/* Card Content */}
+                        <div className="p-5 space-y-3">
+                          
+                          {/* Price & Location */}
+                          <div>
+                            <div className="flex items-baseline justify-between">
+                              <div className="text-xl font-black text-[#0E7C5D]">
+                                {prop.priceFormatted}
+                              </div>
+                              {prop.carpetAreaSqFt && (
+                                <span className="text-[11px] text-[#64748B] font-semibold">
+                                  ₹{Math.round(prop.price / prop.carpetAreaSqFt).toLocaleString('en-IN')}/sq.ft
+                                </span>
+                              )}
+                            </div>
+                            <h3 className="text-sm font-bold text-[#0F2A43] truncate mt-0.5" title={prop.title}>
+                              {prop.title}
+                            </h3>
+                            <div className="flex items-center gap-1 text-xs text-[#64748B] mt-1">
+                              <MapPin className="w-3.5 h-3.5 text-[#18A67D] shrink-0" />
+                              <span className="truncate">{prop.locality}, {prop.city}</span>
+                            </div>
+                          </div>
+
+                          {/* Spec Badges */}
+                          <div className="grid grid-cols-3 gap-1.5 py-2 border-y border-[#F1F5F9] text-center text-[11px]">
+                            <div className="space-y-0.5">
+                              <span className="text-[#94A3B8] block text-[10px]">Furnishing</span>
+                              <span className="font-bold text-[#0F2A43] truncate block">{prop.furnishing}</span>
+                            </div>
+                            <div className="space-y-0.5">
+                              <span className="text-[#94A3B8] block text-[10px]">Status</span>
+                              <span className="font-bold text-[#0F2A43] truncate block">{prop.constructionStatus}</span>
+                            </div>
+                            <div className="space-y-0.5">
+                              <span className="text-[#94A3B8] block text-[10px]">Posted By</span>
+                              <span className="font-bold text-[#0E7C5D] truncate block">{prop.postedBy.type}</span>
+                            </div>
+                          </div>
+
+                        </div>
+                      </div>
+
+                      {/* Card Actions Footer */}
+                      <div className="p-5 pt-0 flex items-center gap-2">
+                        <Link
+                          href={`/properties/${prop.id}`}
+                          className="flex-1 py-2.5 bg-[#0F2A43] hover:bg-[#163b5c] text-white text-xs font-bold rounded-xl text-center transition-colors flex items-center justify-center gap-1"
+                        >
+                          <span>View Details</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                        <a
+                          href={`tel:${prop.postedBy.phone}`}
+                          className="p-2.5 bg-[#E7F6F1] hover:bg-[#d0f0e6] text-[#0E7C5D] rounded-xl border border-[#18A67D]/20 transition-colors"
+                          title="Call Seller"
+                        >
+                          <Phone className="w-4 h-4" />
+                        </a>
+                      </div>
+
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+          </main>
+
+        </div>
+      </div>
 
       {/* Footer */}
       <footer className="w-full border-t border-[#E2E8F0] bg-white py-4 px-4 text-center text-xs text-[#64748B] mt-8">
@@ -483,5 +875,20 @@ export default function PropertiesCatalogPage() {
       </footer>
 
     </div>
+  );
+}
+
+export default function PropertiesCatalogPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center p-8">
+        <div className="flex items-center gap-2 text-sm font-bold text-[#0F2A43]">
+          <div className="w-4 h-4 border-2 border-[#18A67D] border-t-transparent rounded-full animate-spin" />
+          <span>Loading verified properties catalog...</span>
+        </div>
+      </div>
+    }>
+      <PropertiesCatalogContent />
+    </Suspense>
   );
 }

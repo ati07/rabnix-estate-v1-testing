@@ -86,9 +86,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (user?.role === 'admin') refreshAdminData();
-    else { setUsers([]); setActivityLogs([]); }
-  }, [user?.role, refreshAdminData]);
+    let active = true;
+    if (user?.role === 'admin') {
+      Promise.all([api('/api/users'), api('/api/activity')]).then(([u, a]) => {
+        if (!active) return;
+        if (u.ok && u.data?.users) setUsers(u.data.users);
+        if (a.ok && a.data?.logs) setActivityLogs(a.data.logs);
+      });
+    } else {
+      queueMicrotask(() => {
+        if (active) {
+          setUsers([]);
+          setActivityLogs([]);
+        }
+      });
+    }
+    return () => { active = false; };
+  }, [user?.role]);
 
   const loginWithPassword = async (emailOrPhone: string, password: string) => {
     setIsLoading(true);

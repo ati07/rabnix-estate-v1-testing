@@ -203,6 +203,20 @@ export function Navbar({
               Plots / Land
             </button>
 
+            <Link
+              href="/collections"
+              className="px-2.5 xl:px-3 py-1.5 rounded-lg whitespace-nowrap hover:text-[#18A67D] hover:bg-[#F8FAFC] transition-colors font-semibold"
+            >
+              Collections
+            </Link>
+
+            <Link
+              href="/builders"
+              className="px-2.5 xl:px-3 py-1.5 rounded-lg whitespace-nowrap hover:text-[#18A67D] hover:bg-[#F8FAFC] transition-colors font-semibold"
+            >
+              Builders & Projects
+            </Link>
+
             <button
               id="nav-link-pg"
               onClick={() => handleNavClick('pg')}
@@ -522,6 +536,20 @@ export function Navbar({
             >
               Plots & Lands
             </button>
+            <Link
+              href="/collections"
+              onClick={() => setMobileMenuOpen(false)}
+              className="p-2.5 rounded-lg text-left text-xs font-bold uppercase tracking-wider bg-[#F8FAFC] text-[#172033] border border-[#E2E8F0] hover:bg-[#E7F6F1] hover:text-[#0E7C5D]"
+            >
+              Curated Collections
+            </Link>
+            <Link
+              href="/builders"
+              onClick={() => setMobileMenuOpen(false)}
+              className="p-2.5 rounded-lg text-left text-xs font-bold uppercase tracking-wider bg-[#F8FAFC] text-[#172033] border border-[#E2E8F0] hover:bg-[#E7F6F1] hover:text-[#0E7C5D] col-span-2"
+            >
+              Top Reputed Builders & Projects
+            </Link>
           </div>
 
           <div className="pt-2 border-t border-[#E2E8F0] flex flex-col gap-2">
