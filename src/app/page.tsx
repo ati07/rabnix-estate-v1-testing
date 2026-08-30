@@ -246,7 +246,7 @@ export default function HomeView() {
       <FeaturedProjectsSection
         cityName={selectedCity.name}
         onSelectProject={(project) => {
-          router.push(`/properties?city=${encodeURIComponent(project.city)}&locality=${encodeURIComponent(project.locality.split(',')[0].trim())}`);
+          router.push(`/projects/${project.id}`);
         }}
       />
 
@@ -254,14 +254,16 @@ export default function HomeView() {
       <PopularOwnerPropertiesSection
         cityName={selectedCity.name}
         properties={properties}
-        onSelectProperty={(property) => setSelectedPropertyForModal(property)}
+        onSelectProperty={(property) => {
+          router.push(`/properties/${property.id}`);
+        }}
       />
 
       {/* 6. RABNIX PREFERRED AGENTS IN [CITY] (Reference Screenshot 3) */}
       <PreferredAgentsSection
         cityName={selectedCity.name}
         onContactAgent={(agent) => {
-          router.push(`/properties?city=${encodeURIComponent(agent.city)}&verified=true`);
+          router.push(`/agents/${agent.id}`);
         }}
       />
 
@@ -269,7 +271,7 @@ export default function HomeView() {
       <TopProjectsSection
         cityName={selectedCity.name}
         onSelectProject={(project) => {
-          router.push(`/properties?city=${encodeURIComponent(project.city)}&locality=${encodeURIComponent(project.locality.split(',')[0].trim())}`);
+          router.push(`/projects/${project.id}`);
         }}
       />
 
@@ -277,14 +279,18 @@ export default function HomeView() {
       <ExclusiveOwnerPropertiesSection
         cityName={selectedCity.name}
         properties={properties}
-        onSelectProperty={(property) => setSelectedPropertyForModal(property)}
+        onSelectProperty={(property) => {
+          router.push(`/properties/${property.id}`);
+        }}
       />
 
       {/* 9. FRESH PROPERTIES IN [CITY] (Reference Screenshot 6) */}
       <FreshPropertiesSection
         cityName={selectedCity.name}
         properties={properties}
-        onSelectProperty={(property) => setSelectedPropertyForModal(property)}
+        onSelectProperty={(property) => {
+          router.push(`/properties/${property.id}`);
+        }}
       />
 
       {/* 10. EXPLORE REAL ESTATE CATEGORIES (Visual Explorer) */}

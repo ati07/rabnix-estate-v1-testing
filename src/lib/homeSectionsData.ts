@@ -68,6 +68,7 @@ export interface PreferredAgentItem {
   agencyName: string;
   agencyLogo: string;
   operatingSince: number;
+  experienceYears?: number;
   buyersServed: string;
   propertiesForSaleCount: number;
   propertiesForRentCount?: number;

@@ -9,7 +9,7 @@ import { Property } from '@/lib/types';
 interface FreshPropertiesSectionProps {
   cityName?: string;
   properties: Property[];
-  onSelectProperty: (property: Property) => void;
+  onSelectProperty?: (property: Property) => void;
 }
 
 export function FreshPropertiesSection({
@@ -19,6 +19,14 @@ export function FreshPropertiesSection({
 }: FreshPropertiesSectionProps) {
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleClickProperty = (prop: Property) => {
+    if (onSelectProperty) {
+      onSelectProperty(prop);
+    } else {
+      router.push(`/properties/${prop.id}`);
+    }
+  };
 
   // Fresh / Newly added properties (sorted newest first or filtered by city)
   const freshProperties = React.useMemo(() => {
@@ -84,7 +92,7 @@ export function FreshPropertiesSection({
             return (
               <div
                 key={prop.id}
-                onClick={() => onSelectProperty(prop)}
+                onClick={() => handleClickProperty(prop)}
                 className="w-[240px] sm:w-[270px] flex-shrink-0 snap-start bg-white rounded-xl border border-[#E2E8F0] overflow-hidden hover:shadow-md hover:border-[#CBD5E1] transition-all duration-300 cursor-pointer flex flex-col group/card"
               >
                 {/* Photo with count badge */}

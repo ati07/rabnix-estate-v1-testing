@@ -36,7 +36,7 @@ export default function AgentDetailsPage({ params }: { params: Promise<{ id: str
   const agentId = resolvedParams.id;
   const router = useRouter();
   const { user } = useAuth();
-  const { properties, formatPrice } = useProperties();
+  const { properties } = useProperties();
 
   const agent = getAgentById(agentId) || HOME_PREFERRED_AGENTS[0];
   const agentProperties = agent ? getAgentProperties(agent, properties) : [];
@@ -77,8 +77,8 @@ export default function AgentDetailsPage({ params }: { params: Promise<{ id: str
 
   const filteredProperties = agentProperties.filter((p) => {
     if (propertyFilter === 'all') return true;
-    if (propertyFilter === 'buy') return p.purpose === 'buy';
-    if (propertyFilter === 'rent') return p.purpose === 'rent';
+    if (propertyFilter === 'buy') return p.listingType === 'buy';
+    if (propertyFilter === 'rent') return p.listingType === 'rent';
     return true;
   });
 
@@ -345,12 +345,12 @@ export default function AgentDetailsPage({ params }: { params: Promise<{ id: str
                         />
                         <div className="absolute top-2.5 left-2.5">
                           <span className="px-2 py-0.5 bg-black/60 backdrop-blur-xs text-white text-[10px] font-bold rounded">
-                            {prop.purpose === 'buy' ? 'FOR SALE' : 'FOR RENT'}
+                            {prop.listingType === 'buy' ? 'FOR SALE' : 'FOR RENT'}
                           </span>
                         </div>
                         <div className="absolute bottom-2.5 left-2.5">
                           <span className="px-2.5 py-1 bg-white/95 backdrop-blur-xs text-[#0F2A43] text-xs font-extrabold rounded-md shadow-xs">
-                            {formatPrice(prop.price)}
+                            {prop.priceFormatted}
                           </span>
                         </div>
                       </div>
@@ -368,17 +368,19 @@ export default function AgentDetailsPage({ params }: { params: Promise<{ id: str
                         </div>
 
                         <div className="flex items-center gap-3 pt-2 border-t border-slate-100 text-xs text-slate-600 font-medium">
-                          <div className="flex items-center gap-1">
-                            <Bed className="w-3.5 h-3.5 text-slate-400" />
-                            <span>{prop.bedrooms} BHK</span>
-                          </div>
+                          {prop.bhk && (
+                            <div className="flex items-center gap-1">
+                              <Bed className="w-3.5 h-3.5 text-slate-400" />
+                              <span>{prop.bhk} BHK</span>
+                            </div>
+                          )}
                           <div className="flex items-center gap-1">
                             <Bath className="w-3.5 h-3.5 text-slate-400" />
                             <span>{prop.bathrooms} Baths</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <Maximize2 className="w-3.5 h-3.5 text-slate-400" />
-                            <span>{prop.areaSqFt} sq.ft</span>
+                            <span>{prop.carpetAreaSqFt} sq.ft</span>
                           </div>
                         </div>
                       </div>
