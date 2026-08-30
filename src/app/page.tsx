@@ -1,31 +1,17 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
-  Building2, 
-  Filter, 
   Sparkles, 
-  CheckCircle, 
-  ShieldCheck, 
-  Award, 
-  ArrowUpDown, 
-  RotateCcw, 
-  SlidersHorizontal,
-  Home,
-  Bot,
-  MapPin,
-  ChevronDown,
-  Layers,
-  Search
 } from 'lucide-react';
-import { Property, SearchFilters, CityInfo, ListingType, PropertyCategory, ConstructionStatus } from '@/lib/types';
+import { Property, SearchFilters, CityInfo, ListingType } from '@/lib/types';
 import { CITIES_DATA } from '@/lib/realEstateData';
 import { detectNearestCity } from '@/lib/geoCity';
 import { useProperties } from '@/lib/propertyContext';
 import { useAuth } from '@/lib/authContext';
 import { Navbar } from '@/components/Navbar';
 import { HeroSearch } from '@/components/HeroSearch';
-import { PropertyCard } from '@/components/PropertyCard';
 import { PropertyDetailModal } from '@/components/PropertyDetailModal';
 import { PostPropertyModal } from '@/components/PostPropertyModal';
 import { EmiCalculatorModal } from '@/components/EmiCalculatorModal';
@@ -38,32 +24,54 @@ import { LocalityTrendsSection } from '@/components/LocalityTrendsSection';
 import { ExploreCategoriesSection } from '@/components/ExploreCategoriesSection';
 import { CuratedCollectionsSection } from '@/components/CuratedCollectionsSection';
 import { TopBuildersSection } from '@/components/TopBuildersSection';
+import { FeaturedProjectsSection } from '@/components/home/FeaturedProjectsSection';
+import { PopularOwnerPropertiesSection } from '@/components/home/PopularOwnerPropertiesSection';
+import { PreferredAgentsSection } from '@/components/home/PreferredAgentsSection';
+import { TopProjectsSection } from '@/components/home/TopProjectsSection';
+import { ExplorePopularLocalitiesSection } from '@/components/home/ExplorePopularLocalitiesSection';
+import { ExclusiveOwnerPropertiesSection } from '@/components/home/ExclusiveOwnerPropertiesSection';
+import { FreshPropertiesSection } from '@/components/home/FreshPropertiesSection';
 import { Footer } from '@/components/Footer';
 
 const CITY_STORAGE_KEY = 'rabnix_selected_city';
 
 export default function HomeView() {
+  const router = useRouter();
   const { properties, addProperty, shortlistIds, toggleShortlist } = useProperties();
   const { user } = useAuth();
 
   // Active City
-  const [selectedCity, setSelectedCity] = useState<CityInfo>(CITIES_DATA[1]); // Bangalore default
+  const [selectedCity, setSelectedCity] = useState<CityInfo>(() => {
+    if (typeof window !== 'undefined') {
+      const savedName = localStorage.getItem(CITY_STORAGE_KEY);
+      const saved = savedName ? CITIES_DATA.find((c) => c.name === savedName) : undefined;
+      if (saved) return saved;
+    }
+    return CITIES_DATA[1]; // Bangalore default
+  });
 
   // Active Search & Filter State
-  const [filters, setFilters] = useState<SearchFilters>({
-    listingType: 'buy',
-    city: 'Bangalore',
-    locality: '',
-    category: undefined,
-    minPrice: undefined,
-    maxPrice: undefined,
-    bhk: [],
-    furnishing: undefined,
-    constructionStatus: undefined,
-    isVerifiedOnly: false,
-    isOwnerOnly: false,
-    isReraApprovedOnly: false,
-    sortBy: 'recommended'
+  const [filters, setFilters] = useState<SearchFilters>(() => {
+    let initialCity = 'Bangalore';
+    if (typeof window !== 'undefined') {
+      const savedName = localStorage.getItem(CITY_STORAGE_KEY);
+      if (savedName) initialCity = savedName;
+    }
+    return {
+      listingType: 'buy',
+      city: initialCity,
+      locality: '',
+      category: undefined,
+      minPrice: undefined,
+      maxPrice: undefined,
+      bhk: [],
+      furnishing: undefined,
+      constructionStatus: undefined,
+      isVerifiedOnly: false,
+      isOwnerOnly: false,
+      isReraApprovedOnly: false,
+      sortBy: 'recommended'
+    };
   });
 
   // Modal & Drawer visibility
@@ -92,25 +100,23 @@ export default function HomeView() {
     }
   };
 
-  // Resolve the active city on mount. If the user has picked a city before we
-  // restore it; otherwise we ask for their geolocation and use the nearest
-  // supported city. We never override a manual choice, and fall back silently to
-  // the default when location is denied/unavailable. (Kept in an effect rather
-  // than lazy initial state to avoid a server/client hydration mismatch.)
+  // Resolve the active city on mount via geolocation if no saved preference
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const savedName = localStorage.getItem(CITY_STORAGE_KEY);
-    const saved = savedName ? CITIES_DATA.find((c) => c.name === savedName) : undefined;
-    if (saved) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      handleSelectCity(saved);
-      return;
-    }
+    if (savedName) return;
 
     let cancelled = false;
     detectNearestCity().then((city) => {
-      if (!cancelled && city) handleSelectCity(city);
+      if (!cancelled && city) {
+        setSelectedCity(city);
+        setFilters((prev) => ({
+          ...prev,
+          city: city.name,
+          locality: ''
+        }));
+      }
     });
     return () => { cancelled = true; };
   }, []);
@@ -121,18 +127,7 @@ export default function HomeView() {
 
   const handlePropertyAdded = (newProperty: Property) => {
     addProperty(newProperty);
-    // Switch filter to match the new property so user sees it right away
-    setFilters((prev) => ({
-      ...prev,
-      city: newProperty.city,
-      listingType: newProperty.listingType,
-      locality: ''
-    }));
-  };
-
-  const handleOpenEmiForPrice = (price: number) => {
-    setEmiInitialPrice(price);
-    setIsEmiCalculatorOpen(true);
+    router.push(`/properties?city=${encodeURIComponent(newProperty.city)}&listingType=${newProperty.listingType}`);
   };
 
   const handleOpenGenieWithContext = (property: Property) => {
@@ -140,108 +135,65 @@ export default function HomeView() {
     setIsGenieDrawerOpen(true);
   };
 
-  // Filter & Sort Logic
-  const filteredProperties = useMemo(() => {
-    return properties.filter((item) => {
-      // City matching
-      if (filters.city && filters.city !== 'All Cities' && item.city.toLowerCase() !== filters.city.toLowerCase()) {
-        return false;
-      }
+  // Execute Search & Route to Dedicated Filter Page
+  const handleExecuteSearch = (overrideFilters?: Partial<SearchFilters>) => {
+    const current = { ...filters, ...overrideFilters };
+    const params = new URLSearchParams();
 
-      // Listing Type
-      if (filters.listingType && item.listingType !== filters.listingType) {
-        return false;
-      }
+    if (selectedCity?.name && selectedCity.name !== 'All Cities') {
+      params.set('city', selectedCity.name);
+    }
+    if (current.listingType) {
+      params.set('listingType', current.listingType);
+    }
+    if (current.locality && current.locality.trim() !== '') {
+      params.set('locality', current.locality.trim());
+    }
+    if (current.category) {
+      params.set('category', current.category);
+    } else if (current.categories && current.categories.length === 1) {
+      params.set('category', current.categories[0]);
+    }
+    if (current.bhk && current.bhk.length > 0) {
+      params.set('bhk', current.bhk.join(','));
+    }
+    if (current.minPrice !== undefined && current.minPrice > 0) {
+      params.set('minPrice', current.minPrice.toString());
+    }
+    if (current.maxPrice !== undefined && current.maxPrice < 200000000) {
+      params.set('maxPrice', current.maxPrice.toString());
+    }
+    if (current.isOwnerOnly) {
+      params.set('owner', 'true');
+    }
+    if (current.isVerifiedOnly) {
+      params.set('verified', 'true');
+    }
+    if (current.isReraApprovedOnly) {
+      params.set('rera', 'true');
+    }
+    if (current.constructionStatus) {
+      const statusStr = Array.isArray(current.constructionStatus) 
+        ? current.constructionStatus.join(',') 
+        : current.constructionStatus;
+      params.set('constructionStatus', statusStr);
+    }
 
-      // Locality Search
-      if (filters.locality && filters.locality.trim() !== '') {
-        const query = filters.locality.toLowerCase().trim();
-        const matchesLocality = item.locality.toLowerCase().includes(query);
-        const matchesSubLocality = item.subLocality?.toLowerCase().includes(query) || false;
-        const matchesTitle = item.title.toLowerCase().includes(query);
-        if (!matchesLocality && !matchesSubLocality && !matchesTitle) {
-          return false;
-        }
-      }
+    router.push(`/properties?${params.toString()}`);
+  };
 
-      // Category
-      if (filters.category && item.category !== filters.category) {
-        return false;
+  const cityMatchingCount = useMemo(() => {
+    return properties.filter((p) => {
+      if (selectedCity && selectedCity.name !== 'All Cities') {
+        return p.city.toLowerCase() === selectedCity.name.toLowerCase();
       }
-
-      // Budget Range
-      if (filters.minPrice !== undefined && item.price < filters.minPrice) {
-        return false;
-      }
-      if (filters.maxPrice !== undefined && item.price > filters.maxPrice) {
-        return false;
-      }
-
-      // BHK
-      if (filters.bhk && filters.bhk.length > 0) {
-        if (!item.bhk || !filters.bhk.includes(item.bhk)) {
-          return false;
-        }
-      }
-
-      // Furnishing
-      if (filters.furnishing && item.furnishing !== filters.furnishing) {
-        return false;
-      }
-
-      // Construction Status
-      if (filters.constructionStatus && item.constructionStatus !== filters.constructionStatus) {
-        return false;
-      }
-
-      // Badges
-      if (filters.isVerifiedOnly && !item.isVerified) {
-        return false;
-      }
-      if (filters.isOwnerOnly && !item.isExclusiveOwner) {
-        return false;
-      }
-      if (filters.isReraApprovedOnly && !item.reraApproved) {
-        return false;
-      }
-      if (filters.isFeaturedOnly && !item.isFeatured) {
-        return false;
-      }
-
       return true;
-    }).sort((a, b) => {
-      if (filters.sortBy === 'price_asc') return a.price - b.price;
-      if (filters.sortBy === 'price_desc') return b.price - a.price;
-      if (filters.sortBy === 'area_desc') return b.carpetAreaSqFt - a.carpetAreaSqFt;
-      if (filters.sortBy === 'newest') return (b.createdAt || '').localeCompare(a.createdAt || '');
-      // Recommended: featured first, then verified, then price
-      if (a.isFeatured && !b.isFeatured) return -1;
-      if (!a.isFeatured && b.isFeatured) return 1;
-      return 0;
-    });
-  }, [properties, filters]);
+    }).length;
+  }, [properties, selectedCity]);
 
   const shortlistedProperties = useMemo(() => {
     return properties.filter((p) => shortlistIds.includes(p.id));
   }, [properties, shortlistIds]);
-
-  const resetAllFilters = () => {
-    setFilters({
-      listingType: filters.listingType,
-      city: selectedCity.name,
-      locality: '',
-      category: undefined,
-      minPrice: undefined,
-      maxPrice: undefined,
-      bhk: [],
-      furnishing: undefined,
-      constructionStatus: undefined,
-      isVerifiedOnly: false,
-      isOwnerOnly: false,
-      isReraApprovedOnly: false,
-      sortBy: 'recommended'
-    });
-  };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col selection:bg-[#18A67D] selection:text-white font-sans text-[#172033]">
@@ -250,7 +202,10 @@ export default function HomeView() {
       <Navbar
         selectedCity={selectedCity}
         onOpenCitySelector={() => setIsCitySelectorOpen(true)}
-        onSelectListingType={(type) => setFilters((prev) => ({ ...prev, listingType: type }))}
+        onSelectListingType={(type) => {
+          setFilters((prev) => ({ ...prev, listingType: type }));
+          router.push(`/properties?city=${encodeURIComponent(selectedCity.name)}&listingType=${type}`);
+        }}
         currentListingType={filters.listingType}
         shortlistCount={shortlistIds.length}
         onOpenShortlist={() => setIsShortlistDrawerOpen(true)}
@@ -273,216 +228,93 @@ export default function HomeView() {
         onListingTypeChange={(type) => setFilters((prev) => ({ ...prev, listingType: type }))}
         filters={filters}
         onFilterChange={(newFilters) => setFilters((prev) => ({ ...prev, ...newFilters }))}
-        onExecuteSearch={() => {}}
-        matchingCount={filteredProperties.length}
+        onExecuteSearch={() => handleExecuteSearch()}
+        matchingCount={cityMatchingCount}
         onOpenPostProperty={() => setIsPostPropertyOpen(true)}
       />
 
-      {/* 2.5 EXPLORE REAL ESTATE CATEGORIES (99acres style visual explorer) */}
-      <ExploreCategoriesSection
+      {/* 3. EXPLORE POPULAR LOCALITIES IN [CITY] (Reference Screenshot 5 Top) */}
+      <ExplorePopularLocalitiesSection
         cityName={selectedCity.name}
-        onSelectCategory={(category, listingType) => {
-          setFilters((prev) => ({
-            ...prev,
-            category,
-            categories: [category],
-            listingType: listingType || prev.listingType
-          }));
+        popularLocalities={selectedCity.popularLocalities}
+        onSelectLocality={(localityName) => {
+          router.push(`/properties?city=${encodeURIComponent(selectedCity.name)}&locality=${encodeURIComponent(localityName)}`);
         }}
       />
 
-      {/* 3. MAIN PROPERTY LISTINGS & FILTER SECTION */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-8 py-8 space-y-6">
-        
-        {/* Results Header Bar & Sort Controls */}
-        <div className="bg-white p-4 sm:p-5 rounded-xl border border-[#E2E8F0] shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg sm:text-xl font-bold text-[#0F2A43] tracking-tight">
-                {filteredProperties.length} Properties for {filters.listingType === 'buy' ? 'Sale' : filters.listingType === 'rent' ? 'Rent' : filters.listingType.toUpperCase()} in {filters.locality || selectedCity.name}
-              </h1>
-              {filteredProperties.length > 0 && (
-                <span className="bg-[#E7F6F1] text-[#0E7C5D] border border-[#18A67D]/30 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded">
-                  Live
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-[#64748B] mt-0.5">
-              Verified flats, luxury villas, builder floors & zero-brokerage direct owner listings
-            </p>
-          </div>
+      {/* 4. FEATURED PROJECTS (Reference Screenshot 1) */}
+      <FeaturedProjectsSection
+        cityName={selectedCity.name}
+        onSelectProject={(project) => {
+          router.push(`/properties?city=${encodeURIComponent(project.city)}&locality=${encodeURIComponent(project.locality.split(',')[0].trim())}`);
+        }}
+      />
 
-          {/* Quick filter pills & Sort dropdown */}
-          <div className="flex items-center gap-2.5 flex-wrap">
-            
-            {/* Sort selector */}
-            <div className="flex items-center gap-1.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg px-3 py-1.5 text-xs font-semibold">
-              <ArrowUpDown className="w-3.5 h-3.5 text-[#64748B]" />
-              <span className="text-[#64748B] uppercase tracking-wider text-[10px] font-bold">Sort:</span>
-              <select
-                id="sort-by-select"
-                value={filters.sortBy}
-                onChange={(e) => setFilters((prev) => ({ ...prev, sortBy: e.target.value as any }))}
-                className="bg-transparent font-bold text-[#172033] outline-none cursor-pointer"
-              >
-                <option value="recommended">Recommended</option>
-                <option value="price_asc">Price: Low to High</option>
-                <option value="price_desc">Price: High to Low</option>
-                <option value="area_desc">Carpet Area: High to Low</option>
-                <option value="newest">Newest First</option>
-              </select>
-            </div>
+      {/* 5. POPULAR OWNER PROPERTIES (Reference Screenshot 2) */}
+      <PopularOwnerPropertiesSection
+        cityName={selectedCity.name}
+        properties={properties}
+        onSelectProperty={(property) => setSelectedPropertyForModal(property)}
+      />
 
-            {/* Reset Filters button */}
-            <button
-              id="reset-filters-btn"
-              onClick={resetAllFilters}
-              className="text-xs font-bold text-[#64748B] hover:text-[#18A67D] bg-[#F8FAFC] hover:bg-[#E7F6F1] border border-[#E2E8F0] px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset</span>
-            </button>
-          </div>
-        </div>
+      {/* 6. RABNIX PREFERRED AGENTS IN [CITY] (Reference Screenshot 3) */}
+      <PreferredAgentsSection
+        cityName={selectedCity.name}
+        onContactAgent={(agent) => {
+          router.push(`/properties?city=${encodeURIComponent(agent.city)}&verified=true`);
+        }}
+      />
 
-        {/* Quick Filter Tag Buttons */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar text-xs font-bold uppercase tracking-wider">
-          <button
-            onClick={() => setFilters((prev) => ({ ...prev, isOwnerOnly: !prev.isOwnerOnly }))}
-            className={`px-3 py-1.5 rounded-lg border transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer text-xs ${
-              filters.isOwnerOnly
-                ? 'bg-[#0E7C5D] border-[#0E7C5D] text-white shadow-xs'
-                : 'bg-white border-[#E2E8F0] text-[#172033] hover:border-[#CBD5E1]'
-            }`}
-          >
-            <CheckCircle className="w-3.5 h-3.5" />
-            <span>0% Brokerage (Owner)</span>
-          </button>
+      {/* 7. TOP PROJECTS [rabnixHomes] (Reference Screenshot 4) */}
+      <TopProjectsSection
+        cityName={selectedCity.name}
+        onSelectProject={(project) => {
+          router.push(`/properties?city=${encodeURIComponent(project.city)}&locality=${encodeURIComponent(project.locality.split(',')[0].trim())}`);
+        }}
+      />
 
-          <button
-            onClick={() => setFilters((prev) => ({ ...prev, isVerifiedOnly: !prev.isVerifiedOnly }))}
-            className={`px-3 py-1.5 rounded-lg border transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer text-xs ${
-              filters.isVerifiedOnly
-                ? 'bg-[#0F2A43] border-[#0F2A43] text-white shadow-xs'
-                : 'bg-white border-[#E2E8F0] text-[#172033] hover:border-[#CBD5E1]'
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Verified on Site</span>
-          </button>
+      {/* 8. EXCLUSIVE OWNER PROPERTIES (Reference Screenshot 5 Bottom) */}
+      <ExclusiveOwnerPropertiesSection
+        cityName={selectedCity.name}
+        properties={properties}
+        onSelectProperty={(property) => setSelectedPropertyForModal(property)}
+      />
 
-          <button
-            onClick={() => setFilters((prev) => ({ ...prev, isReraApprovedOnly: !prev.isReraApprovedOnly }))}
-            className={`px-3 py-1.5 rounded-lg border transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer text-xs ${
-              filters.isReraApprovedOnly
-                ? 'bg-[#0F2A43] border-[#0F2A43] text-[#22C39A] shadow-xs'
-                : 'bg-white border-[#E2E8F0] text-[#172033] hover:border-[#CBD5E1]'
-            }`}
-          >
-            <Award className="w-3.5 h-3.5" />
-            <span>RERA Registered</span>
-          </button>
+      {/* 9. FRESH PROPERTIES IN [CITY] (Reference Screenshot 6) */}
+      <FreshPropertiesSection
+        cityName={selectedCity.name}
+        properties={properties}
+        onSelectProperty={(property) => setSelectedPropertyForModal(property)}
+      />
 
-          {/* Construction Status Buttons */}
-          <button
-            onClick={() => setFilters((prev) => ({ 
-              ...prev, 
-              constructionStatus: prev.constructionStatus === 'Ready to Move' ? undefined : 'Ready to Move' 
-            }))}
-            className={`px-3 py-1.5 rounded-lg border transition-all whitespace-nowrap cursor-pointer text-xs ${
-              filters.constructionStatus === 'Ready to Move'
-                ? 'bg-[#18A67D] border-[#18A67D] text-white shadow-xs'
-                : 'bg-white border-[#E2E8F0] text-[#172033] hover:border-[#CBD5E1]'
-            }`}
-          >
-            Ready to Move
-          </button>
+      {/* 10. EXPLORE REAL ESTATE CATEGORIES (Visual Explorer) */}
+      <ExploreCategoriesSection
+        cityName={selectedCity.name}
+      />
 
-          <button
-            onClick={() => setFilters((prev) => ({ 
-              ...prev, 
-              constructionStatus: prev.constructionStatus === 'Under Construction' ? undefined : 'Under Construction' 
-            }))}
-            className={`px-3 py-1.5 rounded-lg border transition-all whitespace-nowrap cursor-pointer text-xs ${
-              filters.constructionStatus === 'Under Construction'
-                ? 'bg-[#18A67D] border-[#18A67D] text-white shadow-xs'
-                : 'bg-white border-[#E2E8F0] text-[#172033] hover:border-[#CBD5E1]'
-            }`}
-          >
-            Under Construction
-          </button>
-        </div>
-
-        {/* Property Grid List */}
-        {filteredProperties.length === 0 ? (
-          <div className="bg-white rounded-xl p-12 border border-[#E2E8F0] text-center space-y-4 shadow-sm">
-            <div className="w-14 h-14 bg-[#E7F6F1] text-[#18A67D] rounded-full flex items-center justify-center mx-auto">
-              <Search className="w-7 h-7" />
-            </div>
-            <h3 className="text-lg font-bold text-[#0F2A43]">
-              No matching properties found in {filters.locality || selectedCity.name}
-            </h3>
-            <p className="text-xs text-[#64748B] max-w-md mx-auto">
-              We couldn&apos;t find properties matching your current filter criteria. Try adjusting your budget, removing BHK constraints, or exploring nearby localities.
-            </p>
-            <div className="flex items-center justify-center gap-3 pt-2">
-              <button
-                onClick={resetAllFilters}
-                className="bg-[#18A67D] hover:bg-[#0E7C5D] text-white text-xs font-bold px-5 py-2.5 rounded-lg transition-all shadow-sm cursor-pointer"
-              >
-                Clear All Filters
-              </button>
-              <button
-                onClick={() => setIsGenieDrawerOpen(true)}
-                className="bg-[#0F2A43] hover:bg-[#163b5c] text-[#22C39A] text-xs font-bold px-5 py-2.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Ask AI Advisor to Find Homes</span>
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredProperties.map((prop) => (
-              <PropertyCard
-                key={prop.id}
-                property={prop}
-                isShortlisted={shortlistIds.includes(prop.id)}
-                onToggleShortlist={handleToggleShortlist}
-                onViewDetails={(p) => setSelectedPropertyForModal(p)}
-                onContactAgent={(p) => setSelectedPropertyForModal(p)}
-                onOpenEmiForProperty={handleOpenEmiForPrice}
-              />
-            ))}
-          </div>
-        )}
-
-      </main>
-
-      {/* 4. CURATED PROPERTY COLLECTIONS (99acres style handpicked portfolios) */}
+      {/* 11. CURATED PROPERTY COLLECTIONS (Handpicked Portfolios) */}
       <CuratedCollectionsSection
         cityName={selectedCity.name}
         onApplyPreset={(presetFilters) => {
-          setFilters((prev) => ({
-            ...prev,
-            ...presetFilters
-          }));
+          handleExecuteSearch(presetFilters);
         }}
       />
 
-      {/* 5. TOP REPUTED BUILDERS & DEVELOPER SPOTLIGHT */}
+      {/* 12. TOP REPUTED BUILDERS & DEVELOPER SPOTLIGHT */}
       <TopBuildersSection
         cityName={selectedCity.name}
       />
 
-      {/* 6. LOCALITY TRENDS & PRICE INTELLIGENCE */}
+      {/* 13. LOCALITY TRENDS & PRICE INTELLIGENCE */}
       <LocalityTrendsSection
         selectedCity={selectedCity}
-        onSelectLocality={(loc) => setFilters((prev) => ({ ...prev, locality: loc }))}
+        onSelectLocality={(loc) => {
+          router.push(`/properties?city=${encodeURIComponent(selectedCity.name)}&locality=${encodeURIComponent(loc)}`);
+        }}
         onOpenAiValuation={() => setIsAiValuationOpen(true)}
       />
 
-      {/* 5. FOOTER */}
+      {/* 7. FOOTER */}
       <Footer
         onSelectCity={handleSelectCity}
         onOpenEmiCalculator={() => {
@@ -493,7 +325,7 @@ export default function HomeView() {
         onOpenPostProperty={() => setIsPostPropertyOpen(true)}
       />
 
-      {/* 6. FLOATING AI GENIE CHAT BUTTON */}
+      {/* 8. FLOATING AI GENIE CHAT BUTTON */}
       <button
         id="floating-genie-btn"
         onClick={() => {

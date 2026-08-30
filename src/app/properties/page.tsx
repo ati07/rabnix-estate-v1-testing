@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, Suspense } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -54,7 +54,7 @@ function PropertiesCatalogContent() {
   const { user: _user } = useAuth();
 
   // Derive initial values from URL Search Parameters
-  const urlCity = useMemo(() => {
+  const initialCity = useMemo(() => {
     const cityParam = searchParams.get('city');
     if (!cityParam) return 'All';
     const matchedCity = CITIES_DATA.find(
@@ -63,9 +63,9 @@ function PropertiesCatalogContent() {
     return matchedCity ? matchedCity.name : cityParam.toLowerCase() === 'all' ? 'All' : cityParam;
   }, [searchParams]);
 
-  const urlCategory = useMemo(() => searchParams.get('category') || 'All', [searchParams]);
+  const initialCategory = useMemo(() => searchParams.get('category') || 'All', [searchParams]);
   
-  const urlListingType = useMemo(() => {
+  const initialListingType = useMemo(() => {
     const typeParam = searchParams.get('listingType') || searchParams.get('type');
     if (typeParam && ['buy', 'rent', 'pg', 'commercial', 'plot'].includes(typeParam)) {
       return typeParam as ListingType;
@@ -73,9 +73,9 @@ function PropertiesCatalogContent() {
     return 'all';
   }, [searchParams]);
 
-  const urlSearchQuery = useMemo(() => searchParams.get('q') || searchParams.get('locality') || searchParams.get('search') || '', [searchParams]);
+  const initialSearchQuery = useMemo(() => searchParams.get('q') || searchParams.get('locality') || searchParams.get('search') || '', [searchParams]);
 
-  const urlBhk = useMemo(() => {
+  const initialBhk = useMemo(() => {
     const bhkParam = searchParams.get('bhk');
     if (bhkParam) {
       const bhkNum = parseInt(bhkParam, 10);
@@ -84,29 +84,39 @@ function PropertiesCatalogContent() {
     return [];
   }, [searchParams]);
 
-  // Local filter states (allows instant interactive filtering)
-  const [selectedCity, setSelectedCity] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState<string | null>(null);
-  const [listingType, setListingType] = useState<ListingType | 'all' | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedBhk, setSelectedBhk] = useState<number[] | null>(null);
+  const initialVerified = useMemo(() => searchParams.get('verified') === 'true' || searchParams.get('isVerified') === 'true', [searchParams]);
+  const initialOwner = useMemo(() => searchParams.get('owner') === 'true' || searchParams.get('isOwner') === 'true', [searchParams]);
+  const initialRera = useMemo(() => searchParams.get('rera') === 'true' || searchParams.get('reraApproved') === 'true', [searchParams]);
+  const initialSort = useMemo(() => {
+    const s = searchParams.get('sort');
+    if (s === 'newest') return 'newest';
+    if (s && ['recommended', 'price_asc', 'price_desc', 'area_desc', 'newest'].includes(s)) return s as any;
+    return 'recommended';
+  }, [searchParams]);
+
+  // Local filter states (initialized from URL params)
+  const [selectedCity, setSelectedCity] = useState<string>(initialCity);
+  const [searchQuery, setSearchQuery] = useState<string>(initialSearchQuery);
+  const [listingType, setListingType] = useState<ListingType | 'all'>(initialListingType);
+  const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
+  const [selectedBhk, setSelectedBhk] = useState<number[]>(initialBhk);
   const [minPrice, setMinPrice] = useState<number>(0);
   const [maxPrice, setMaxPrice] = useState<number>(100000000);
-  const [verifiedOnly, setVerifiedOnly] = useState<boolean>(() => searchParams.get('verified') === 'true' || searchParams.get('isVerified') === 'true');
-  const [ownerOnly, setOwnerOnly] = useState<boolean>(() => searchParams.get('owner') === 'true' || searchParams.get('isOwner') === 'true');
-  const [reraOnly, setReraOnly] = useState<boolean>(() => searchParams.get('rera') === 'true' || searchParams.get('reraApproved') === 'true');
+  const [verifiedOnly, setVerifiedOnly] = useState<boolean>(initialVerified);
+  const [ownerOnly, setOwnerOnly] = useState<boolean>(initialOwner);
+  const [reraOnly, setReraOnly] = useState<boolean>(initialRera);
   const [furnishing, setFurnishing] = useState<string>('All');
   const [constructionStatus, setConstructionStatus] = useState<string>('All');
-  const [sortBy, setSortBy] = useState<'recommended' | 'price_asc' | 'price_desc' | 'area_desc'>('recommended');
+  const [sortBy, setSortBy] = useState<'recommended' | 'price_asc' | 'price_desc' | 'area_desc' | 'newest'>(initialSort);
   
   // Mobile filter drawer state
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
-  const activeCity = selectedCity !== null ? selectedCity : urlCity;
-  const activeCategory = selectedCategory !== null ? selectedCategory : urlCategory;
-  const activeListingType = listingType !== null ? listingType : urlListingType;
-  const activeSearchQuery = searchQuery !== null ? searchQuery : urlSearchQuery;
-  const activeBhk = selectedBhk !== null ? selectedBhk : urlBhk;
+  const activeCity = selectedCity;
+  const activeCategory = selectedCategory;
+  const activeListingType = listingType;
+  const activeSearchQuery = searchQuery;
+  const activeBhk = selectedBhk;
 
   // Toggle BHK
   const handleToggleBhk = (bhkVal: number) => {
@@ -164,7 +174,7 @@ function PropertiesCatalogContent() {
           return false;
         }
         // Owner Only (0% Brokerage)
-        if (ownerOnly && p.postedBy.type !== 'Owner') {
+        if (ownerOnly && !(p.postedBy.type === 'Owner' || p.isExclusiveOwner)) {
           return false;
         }
         // RERA Only
@@ -179,24 +189,45 @@ function PropertiesCatalogContent() {
         if (constructionStatus !== 'All' && p.constructionStatus !== constructionStatus) {
           return false;
         }
-        // Search Query
-        if (activeSearchQuery.trim()) {
-          const q = activeSearchQuery.toLowerCase();
-          const matchTitle = p.title.toLowerCase().includes(q);
-          const matchLocality = p.locality.toLowerCase().includes(q);
-          const matchCity = p.city.toLowerCase().includes(q);
-          const matchCategory = p.category.toLowerCase().includes(q);
-          if (!matchTitle && !matchLocality && !matchCity && !matchCategory) {
+
+        // Search Query (Locality, Sublocality, Title, Builder, Agent, Tagline, Description)
+        if (activeSearchQuery && activeSearchQuery.trim()) {
+          const q = activeSearchQuery.toLowerCase().trim();
+          const words = q.split(/\s+/).filter(Boolean);
+          
+          const title = (p.title || '').toLowerCase();
+          const locality = (p.locality || '').toLowerCase();
+          const subLocality = (p.subLocality || '').toLowerCase();
+          const city = (p.city || '').toLowerCase();
+          const category = (p.category || '').toLowerCase();
+          const tagline = (p.tagline || '').toLowerCase();
+          const description = (p.description || '').toLowerCase();
+          const builder = (p.postedBy.companyName || '').toLowerCase();
+          const agentName = (p.postedBy.name || '').toLowerCase();
+          
+          const fullText = `${title} ${locality} ${subLocality} ${city} ${category} ${tagline} ${description} ${builder} ${agentName}`;
+          
+          const directMatch = fullText.includes(q);
+          const wordsMatch = words.every((w) => fullText.includes(w));
+          
+          if (!directMatch && !wordsMatch) {
             return false;
           }
         }
+
         return true;
       })
       .sort((a, b) => {
         if (sortBy === 'price_asc') return a.price - b.price;
         if (sortBy === 'price_desc') return b.price - a.price;
         if (sortBy === 'area_desc') return (b.carpetAreaSqFt || 0) - (a.carpetAreaSqFt || 0);
-        return 0; // recommended default
+        if (sortBy === 'newest') return (b.createdAt || '').localeCompare(a.createdAt || '');
+        // Recommended: Featured first, then verified, then owner
+        if (a.isFeatured && !b.isFeatured) return -1;
+        if (!a.isFeatured && b.isFeatured) return 1;
+        if (a.isVerified && !b.isVerified) return -1;
+        if (!a.isVerified && b.isVerified) return 1;
+        return 0;
       });
   }, [
     properties,
@@ -632,6 +663,7 @@ function PropertiesCatalogContent() {
                   className="w-full sm:w-auto px-3 py-2 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs font-semibold text-[#0F2A43] outline-none cursor-pointer"
                 >
                   <option value="recommended">Recommended & Verified</option>
+                  <option value="newest">Newest & Recently Added</option>
                   <option value="price_asc">Price: Low to High</option>
                   <option value="price_desc">Price: High to Low</option>
                   <option value="area_desc">Largest Carpet Area</option>
@@ -878,6 +910,11 @@ function PropertiesCatalogContent() {
   );
 }
 
+function PropertiesCatalogInner() {
+  const searchParams = useSearchParams();
+  return <PropertiesCatalogContent key={searchParams.toString()} />;
+}
+
 export default function PropertiesCatalogPage() {
   return (
     <Suspense fallback={
@@ -888,7 +925,7 @@ export default function PropertiesCatalogPage() {
         </div>
       </div>
     }>
-      <PropertiesCatalogContent />
+      <PropertiesCatalogInner />
     </Suspense>
   );
 }

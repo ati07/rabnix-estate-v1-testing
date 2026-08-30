@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { 
   X, 
   MapPin, 
@@ -23,7 +24,8 @@ import {
   Info,
   TrendingUp,
   FileText,
-  UserCheck
+  UserCheck,
+  ExternalLink
 } from 'lucide-react';
 import { Property, AiValuationResult } from '@/lib/types';
 import { formatIndianCurrency, formatIndianNumber, calculateEmi } from '@/lib/formatters';
@@ -60,6 +62,7 @@ export function PropertyDetailModal({
   const [aiLoading, setAiLoading] = useState(false);
   const [aiAnalysis, setAiAnalysis] = useState<AiValuationResult | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [isWhatsAppInitiated, setIsWhatsAppInitiated] = useState(false);
 
   if (!isOpen) return null;
 
@@ -123,7 +126,16 @@ export function PropertyDetailModal({
             <span className="text-xs text-slate-300">Property ID: {property.id}</span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link
+              href={`/properties/${property.id}`}
+              className="text-xs font-bold text-white/90 hover:text-white bg-white/10 hover:bg-white/20 px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors"
+              title="Open full dedicated property page"
+            >
+              <span>Full Page</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </Link>
+
             <button
               id="detail-modal-shortlist-btn"
               onClick={() => onToggleShortlist(property.id)}
@@ -710,17 +722,29 @@ export function PropertyDetailModal({
                   </form>
                 )}
 
-                {/* Instant WhatsApp simulation */}
-                <button
-                  id="direct-whatsapp-btn"
-                  onClick={() => {
-                    alert(`Simulated WhatsApp connected to ${property.postedBy.name} for ${property.title}`);
-                  }}
-                  className="w-full bg-[#0E7C5D] hover:bg-[#095741] text-white font-bold text-xs py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  <span>Chat on WhatsApp</span>
-                </button>
+                {/* Instant WhatsApp connection */}
+                {isWhatsAppInitiated ? (
+                  <div className="bg-[#E7F6F1] border border-[#22C39A] rounded-lg p-2.5 text-center text-xs text-[#0E7C5D] font-medium space-y-1">
+                    <div className="flex items-center justify-center gap-1 font-bold">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[#18A67D]" />
+                      <span>WhatsApp Link Ready</span>
+                    </div>
+                    <p className="text-[11px] text-[#64748B]">
+                      Connected to {property.postedBy.name} ({property.postedBy.phone}).
+                    </p>
+                  </div>
+                ) : (
+                  <button
+                    id="direct-whatsapp-btn"
+                    onClick={() => {
+                      setIsWhatsAppInitiated(true);
+                    }}
+                    className="w-full bg-[#0E7C5D] hover:bg-[#095741] text-white font-bold text-xs py-2.5 rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>Chat on WhatsApp</span>
+                  </button>
+                )}
 
               </div>
             </div>

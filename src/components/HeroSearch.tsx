@@ -229,6 +229,12 @@ export function HeroSearch({
                         setShowLocalitySuggestions(true);
                       }}
                       onFocus={() => setShowLocalitySuggestions(true)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          setShowLocalitySuggestions(false);
+                          onExecuteSearch();
+                        }
+                      }}
                       placeholder={`Search localities in ${selectedCity.name} (e.g. ${selectedCity.popularLocalities.slice(0, 2).join(', ')})`}
                       className="w-full text-xs sm:text-sm font-medium text-[#172033] bg-transparent outline-none placeholder:text-[#64748B]"
                     />
