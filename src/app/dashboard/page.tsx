@@ -122,6 +122,62 @@ import {
 import { CITIES_DATA } from '@/lib/realEstateData';
 import { formatIndianCurrency } from '@/lib/formatters';
 
+// --- Billing (listing plans) ---
+interface BillingPlan {
+  id: string;
+  name: string;
+  listings: number;
+  priceRupees: number;
+  validityDays: number;
+  tagline: string;
+}
+interface BillingActivePack {
+  id: string;
+  planId: string;
+  planName: string;
+  listingsQuota: number;
+  listingsUsed: number;
+  remaining: number;
+  expiresAt: string | null;
+  activatedAt: string | null;
+}
+interface BillingEntitlement {
+  isAdmin: boolean;
+  unlimited: boolean;
+  freeLimit: number;
+  freeUsed: number;
+  freeRemaining: number | null;
+  totalRemaining: number | null;
+  canCreate: boolean;
+  activePacks: BillingActivePack[];
+}
+interface BillingData {
+  authenticated: boolean;
+  plans: BillingPlan[];
+  entitlement?: BillingEntitlement;
+  payment?: { devBypass: boolean; configured: boolean };
+}
+
+const RAZORPAY_CHECKOUT_SRC = 'https://checkout.razorpay.com/v1/checkout.js';
+
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined') return resolve(false);
+    if ((window as any).Razorpay) return resolve(true);
+    const existing = document.querySelector<HTMLScriptElement>(`script[src="${RAZORPAY_CHECKOUT_SRC}"]`);
+    if (existing) {
+      existing.addEventListener('load', () => resolve(true));
+      existing.addEventListener('error', () => resolve(false));
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = RAZORPAY_CHECKOUT_SRC;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
+
 const AMENITIES_LIST = [
   'Swimming Pool', 'Gymnasium', 'Clubhouse', 'Children Play Area',
   '24x7 Security', 'Power Backup', 'Covered Car Parking', 'Intercom Facility',
@@ -168,7 +224,7 @@ export default function UserDashboardPage() {
 
   // Sidebar navigation tabs
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'upload' | 'listings' | 'graphs' | 'appearance' | 'inquiries' | 'shortlist' |
+    'overview' | 'upload' | 'listings' | 'graphs' | 'appearance' | 'inquiries' | 'shortlist' | 'billing' |
     'admin_moderation' | 'admin_users' | 'admin_activity' | 'admin_trends'
   >('overview');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -276,6 +332,104 @@ export default function UserDashboardPage() {
 
   // Current user role
   const currentRole: UserRole = user?.role || 'owner';
+
+  // --- Billing / listing plans ---
+  const [billing, setBilling] = useState<BillingData | null>(null);
+  const [buyingPlanId, setBuyingPlanId] = useState<string | null>(null);
+  const [billingNotice, setBillingNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const refreshBilling = React.useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch('/api/billing', { cache: 'no-store' });
+      const data = await res.json();
+      if (data?.success) setBilling(data as BillingData);
+    } catch {
+      /* non-fatal */
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    refreshBilling();
+  }, [refreshBilling]);
+
+  const handleBuyPlan = async (planId: string) => {
+    if (!user?.id || buyingPlanId) return;
+    setBuyingPlanId(planId);
+    setBillingNotice(null);
+    try {
+      const orderRes = await fetch('/api/billing/order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planId }),
+      });
+      const orderData = await orderRes.json();
+      if (!orderRes.ok || !orderData?.success) {
+        setBillingNotice({ type: 'error', text: orderData?.error || 'Could not start the purchase.' });
+        return;
+      }
+
+      const finishVerify = async (payload: Record<string, unknown>) => {
+        const verifyRes = await fetch('/api/billing/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ subscriptionId: orderData.subscriptionId, ...payload }),
+        });
+        const verifyData = await verifyRes.json();
+        if (verifyRes.ok && verifyData?.success) {
+          setBillingNotice({
+            type: 'success',
+            text: `${orderData.plan?.name || 'Your'} plan is active — ${orderData.plan?.listings ?? ''} listings added.`,
+          });
+          await refreshBilling();
+        } else {
+          setBillingNotice({ type: 'error', text: verifyData?.error || 'Payment verification failed.' });
+        }
+      };
+
+      // Dev/test mode: no real Razorpay keys — simulate a successful payment.
+      if (orderData.devBypass) {
+        await finishVerify({});
+        return;
+      }
+
+      const loaded = await loadRazorpayScript();
+      if (!loaded) {
+        setBillingNotice({ type: 'error', text: 'Could not load the payment gateway. Check your connection.' });
+        return;
+      }
+
+      const rzp = new (window as any).Razorpay({
+        key: orderData.order.keyId,
+        amount: orderData.order.amount,
+        currency: orderData.order.currency,
+        order_id: orderData.order.id,
+        name: 'Rabnix Estate',
+        description: `${orderData.plan?.name} plan — ${orderData.plan?.listings} listings`,
+        prefill: orderData.prefill,
+        theme: { color: '#18A67D' },
+        handler: (response: any) => {
+          finishVerify({
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+          });
+        },
+        modal: {
+          ondismiss: () => setBillingNotice({ type: 'error', text: 'Payment cancelled.' }),
+        },
+      });
+      rzp.on('payment.failed', () => setBillingNotice({ type: 'error', text: 'Payment failed. Please try again.' }));
+      rzp.open();
+    } catch {
+      setBillingNotice({ type: 'error', text: 'Something went wrong. Please try again.' });
+    } finally {
+      setBuyingPlanId(null);
+    }
+  };
+
+  const entitlement = billing?.entitlement;
+  const listingsRemaining = entitlement?.unlimited ? Infinity : entitlement?.totalRemaining ?? 0;
 
   // Shortlisted properties
   const shortlistedProperties = useMemo(() => {
@@ -609,6 +763,15 @@ export default function UserDashboardPage() {
     e.preventDefault();
     setUploadError(null);
 
+    // Listing quota: block before posting if the user is out of listings.
+    // Admins (unlimited) and not-yet-loaded billing skip this client guard;
+    // the server enforces the limit either way.
+    if (entitlement && !entitlement.unlimited && (entitlement.totalRemaining ?? 0) <= 0) {
+      setUploadError('You have used all your listings. Open Plans & Billing to buy a pack and post more.');
+      setActiveTab('billing');
+      return;
+    }
+
     if (!uploadLocality.trim()) {
       setUploadError('Please enter a valid locality / neighborhood');
       return;
@@ -667,6 +830,9 @@ export default function UserDashboardPage() {
     });
 
     setUploadSuccessId(newProp.id);
+    // The POST resolves shortly after this optimistic update; refresh the
+    // listing balance so the sidebar / billing tab reflect the consumed credit.
+    setTimeout(() => { refreshBilling(); }, 1500);
   };
 
   const handleSaveAppearance = (e: React.FormEvent) => {
@@ -1016,6 +1182,34 @@ export default function UserDashboardPage() {
                 {shortlistedProperties.length}
               </span>
             </button>
+
+            {/* Plans & Billing — sellers only (admins get unlimited listings) */}
+            {currentRole !== 'admin' && (
+              <button
+                id="sidebar-tab-billing"
+                onClick={() => {
+                  setActiveTab('billing');
+                  setMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+                  activeTab === 'billing'
+                    ? 'bg-[#E7F6F1] text-[#0E7C5D] font-black'
+                    : 'hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#0F2A43]'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Zap className="w-4 h-4 text-[#18A67D]" />
+                  <span>Plans &amp; Billing</span>
+                </div>
+                {Number.isFinite(listingsRemaining) && (
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    listingsRemaining > 0 ? 'bg-[#E7F6F1] text-[#0E7C5D]' : 'bg-rose-50 text-rose-600'
+                  }`}>
+                    {listingsRemaining} left
+                  </span>
+                )}
+              </button>
+            )}
 
             {/* Admin Management Section — only for platform admins */}
             {currentRole === 'admin' && (
@@ -1382,6 +1576,31 @@ export default function UserDashboardPage() {
                       </p>
                     </div>
                   </div>
+
+                  {/* Listing balance banner (sellers only) */}
+                  {entitlement && !entitlement.unlimited && (
+                    (entitlement.totalRemaining ?? 0) > 0 ? (
+                      <div className="p-3 rounded-xl bg-[#E7F6F1] border border-[#18A67D]/30 text-[#0E7C5D] text-xs font-bold flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-2">
+                          <Zap className="w-4 h-4" />
+                          {entitlement.totalRemaining} listing{entitlement.totalRemaining === 1 ? '' : 's'} remaining on your account
+                        </span>
+                        <button type="button" onClick={() => setActiveTab('billing')} className="underline hover:no-underline cursor-pointer">
+                          Buy more
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-2">
+                          <AlertCircle className="w-4 h-4" />
+                          You&apos;ve used all your listings. Buy a plan to post more.
+                        </span>
+                        <button type="button" onClick={() => setActiveTab('billing')} className="px-3 py-1 rounded-lg bg-rose-600 text-white hover:bg-rose-700 cursor-pointer">
+                          View plans
+                        </button>
+                      </div>
+                    )
+                  )}
 
                   {uploadError && (
                     <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center gap-2">
@@ -2368,6 +2587,169 @@ export default function UserDashboardPage() {
                 </div>
               )}
 
+            </div>
+          )}
+
+          {/* TAB: PLANS & BILLING (listing packs) */}
+          {activeTab === 'billing' && (
+            <div className="space-y-6 animate-in fade-in">
+              {/* Entitlement summary */}
+              <div className="bg-white rounded-2xl p-6 border border-[#E2E8F0] shadow-xs">
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                  <div>
+                    <h2 className="text-lg sm:text-xl font-extrabold text-[#0F2A43] flex items-center gap-2">
+                      <Zap className="w-5 h-5 text-[#18A67D]" /> Listing Plans &amp; Balance
+                    </h2>
+                    <p className="text-xs text-[#64748B] mt-1">
+                      Every new account gets {entitlement?.freeLimit ?? 1} free listing. Buy a pack to post more —
+                      packs stack and each is valid for 1 year.
+                    </p>
+                  </div>
+                  {entitlement?.unlimited ? (
+                    <div className="px-4 py-3 rounded-xl bg-[#0F2A43] text-white text-center">
+                      <div className="text-[10px] uppercase tracking-wider text-white/70 font-bold">Admin</div>
+                      <div className="text-lg font-black">Unlimited</div>
+                    </div>
+                  ) : (
+                    <div className={`px-4 py-3 rounded-xl text-center ${
+                      (entitlement?.totalRemaining ?? 0) > 0 ? 'bg-[#E7F6F1] text-[#0E7C5D]' : 'bg-rose-50 text-rose-600'
+                    }`}>
+                      <div className="text-[10px] uppercase tracking-wider font-bold opacity-70">Listings left</div>
+                      <div className="text-2xl font-black">{entitlement?.totalRemaining ?? 0}</div>
+                    </div>
+                  )}
+                </div>
+
+                {billingNotice && (
+                  <div className={`mt-4 px-4 py-3 rounded-xl text-xs font-bold flex items-center gap-2 ${
+                    billingNotice.type === 'success'
+                      ? 'bg-[#E7F6F1] text-[#0E7C5D]'
+                      : 'bg-rose-50 text-rose-600'
+                  }`}>
+                    {billingNotice.type === 'success' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                    {billingNotice.text}
+                  </div>
+                )}
+
+                {!entitlement?.unlimited && (
+                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+                      <div className="text-[10px] uppercase tracking-wider text-[#64748B] font-bold">Free tier</div>
+                      <div className="text-sm font-extrabold text-[#0F2A43] mt-0.5">
+                        {(entitlement?.freeRemaining ?? 0)} of {entitlement?.freeLimit ?? 1} free listing left
+                      </div>
+                    </div>
+                    <div className="p-3 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+                      <div className="text-[10px] uppercase tracking-wider text-[#64748B] font-bold">Active packs</div>
+                      <div className="text-sm font-extrabold text-[#0F2A43] mt-0.5">
+                        {entitlement?.activePacks.length ?? 0} active
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Active packs list */}
+                {!entitlement?.unlimited && (entitlement?.activePacks.length ?? 0) > 0 && (
+                  <div className="mt-4 space-y-2">
+                    {entitlement!.activePacks.map((pack) => (
+                      <div key={pack.id} className="flex items-center justify-between gap-3 p-3 rounded-xl border border-[#E2E8F0]">
+                        <div>
+                          <div className="text-sm font-extrabold text-[#0F2A43]">{pack.planName} pack</div>
+                          <div className="text-[11px] text-[#64748B] flex items-center gap-1 mt-0.5">
+                            <Calendar className="w-3 h-3" />
+                            {pack.expiresAt
+                              ? `Expires ${new Date(pack.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                              : 'No expiry'}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-black text-[#18A67D]">{pack.remaining} left</div>
+                          <div className="text-[11px] text-[#64748B]">{pack.listingsUsed}/{pack.listingsQuota} used</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {billing?.payment?.devBypass && (
+                  <div className="mt-4 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-800 font-semibold">
+                    Test mode: Razorpay keys are not set, so purchases are simulated instantly (no real charge).
+                  </div>
+                )}
+              </div>
+
+              {/* Plan cards */}
+              {!entitlement?.unlimited && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {(billing?.plans ?? []).map((plan) => {
+                    const isBest = plan.id === 'plan_365';
+                    return (
+                      <div
+                        key={plan.id}
+                        className={`relative bg-white rounded-2xl p-6 border shadow-xs flex flex-col ${
+                          isBest ? 'border-[#18A67D] ring-1 ring-[#18A67D]/30' : 'border-[#E2E8F0]'
+                        }`}
+                      >
+                        {isBest && (
+                          <span className="absolute -top-2.5 right-4 bg-[#18A67D] text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full">
+                            Best value
+                          </span>
+                        )}
+                        <div className="text-sm font-black text-[#0F2A43] uppercase tracking-wide">{plan.name}</div>
+                        <div className="mt-2 flex items-end gap-1">
+                          <span className="text-3xl font-black text-[#0F2A43] flex items-center">
+                            <IndianRupee className="w-6 h-6" />{plan.priceRupees.toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                        <p className="text-xs text-[#64748B] mt-1">{plan.tagline}</p>
+
+                        <ul className="mt-4 space-y-2 flex-1">
+                          <li className="flex items-center gap-2 text-sm text-[#0F2A43]">
+                            <CheckCircle2 className="w-4 h-4 text-[#18A67D]" />
+                            <span className="font-bold">{plan.listings.toLocaleString('en-IN')} listings</span>
+                          </li>
+                          <li className="flex items-center gap-2 text-sm text-[#0F2A43]">
+                            <CheckCircle2 className="w-4 h-4 text-[#18A67D]" />
+                            Valid for 1 year
+                          </li>
+                          <li className="flex items-center gap-2 text-sm text-[#0F2A43]">
+                            <CheckCircle2 className="w-4 h-4 text-[#18A67D]" />
+                            Stacks with your existing balance
+                          </li>
+                        </ul>
+
+                        <button
+                          onClick={() => handleBuyPlan(plan.id)}
+                          disabled={buyingPlanId !== null}
+                          className={`mt-5 w-full py-3 rounded-xl font-black text-sm transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+                            isBest
+                              ? 'bg-[#18A67D] text-white hover:bg-[#0E7C5D]'
+                              : 'bg-[#0F2A43] text-white hover:bg-[#18A67D]'
+                          }`}
+                        >
+                          {buyingPlanId === plan.id ? (
+                            <><Loader2 className="w-4 h-4 animate-spin" /> Processing…</>
+                          ) : (
+                            <>Buy {plan.listings} listings</>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {entitlement?.unlimited && (
+                <div className="bg-white rounded-2xl p-8 border border-[#E2E8F0] shadow-xs text-center">
+                  <ShieldCheck className="w-10 h-10 text-[#18A67D] mx-auto mb-2" />
+                  <div className="text-sm font-extrabold text-[#0F2A43]">You&apos;re an admin — no plan needed</div>
+                  <p className="text-xs text-[#64748B] mt-1">Admin accounts can post unlimited listings for free.</p>
+                </div>
+              )}
+
+              <p className="text-[11px] text-[#94A3B8] text-center">
+                Payments are processed securely by Razorpay. Listings are consumed when you post and are not refunded on deletion.
+              </p>
             </div>
           )}
 

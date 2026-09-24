@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -55,6 +55,28 @@ export default function PostPropertyPage() {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedPropertyId, setSubmittedPropertyId] = useState<string | null>(null);
+
+  // Listing quota (null = unknown/loading). Admins are unlimited.
+  const [quotaUnlimited, setQuotaUnlimited] = useState(false);
+  const [quotaRemaining, setQuotaRemaining] = useState<number | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/billing', { cache: 'no-store' });
+        const data = await res.json();
+        if (!active || !data?.success || !data?.entitlement) return;
+        setQuotaUnlimited(Boolean(data.entitlement.unlimited));
+        setQuotaRemaining(data.entitlement.unlimited ? null : data.entitlement.totalRemaining ?? 0);
+      } catch {
+        /* non-fatal — server still enforces the limit on submit */
+      }
+    })();
+    return () => { active = false; };
+  }, [user?.id]);
+
+  const outOfQuota = !quotaUnlimited && quotaRemaining !== null && quotaRemaining <= 0;
 
   // Form States
   const [listingType, setListingType] = useState<ListingType>('buy');
@@ -194,6 +216,13 @@ export default function PostPropertyPage() {
   const handleSubmitListing = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
+
+    // Listing quota: block before posting if the user is out of listings.
+    if (outOfQuota) {
+      setErrorMessage('You have used all your listings. Buy a plan from your dashboard to post more properties.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -458,6 +487,19 @@ export default function PostPropertyPage() {
                 })}
               </div>
             </div>
+
+            {/* Out-of-quota Banner */}
+            {outOfQuota && (
+              <div className="flex items-center justify-between gap-2 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold animate-in fade-in">
+                <span className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  You&apos;ve used all your listings. Buy a plan to post more properties.
+                </span>
+                <Link href="/dashboard" className="px-3 py-1 rounded-lg bg-rose-600 text-white hover:bg-rose-700 whitespace-nowrap">
+                  View plans
+                </Link>
+              </div>
+            )}
 
             {/* Error Banner */}
             {errorMessage && (
@@ -1128,8 +1170,8 @@ export default function PostPropertyPage() {
                   <button
                     type="button"
                     onClick={handleSubmitListing}
-                    disabled={isSubmitting}
-                    className="px-8 py-3 bg-[#18A67D] hover:bg-[#0E7C5D] text-white font-bold rounded-xl text-xs sm:text-sm transition-all cursor-pointer flex items-center gap-2 shadow-lg active:scale-98 disabled:opacity-50"
+                    disabled={isSubmitting || outOfQuota}
+                    className="px-8 py-3 bg-[#18A67D] hover:bg-[#0E7C5D] text-white font-bold rounded-xl text-xs sm:text-sm transition-all cursor-pointer flex items-center gap-2 shadow-lg active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSubmitting ? (
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

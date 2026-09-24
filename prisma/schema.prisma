@@ -27,13 +27,43 @@ model User {
   blockedReason   String?
   blockedAt       String?
   lastActive      String?
+  // Free-tier listing allowance consumed. New accounts get FREE_LISTINGS (1)
+  // free listings before an active paid plan is required. Admins are exempt.
+  freeListingsUsed Int     @default(0)
   createdAt       DateTime @default(now())
 
   properties      Property[]        @relation("PostedProperties")
   inquiriesSent   Inquiry[]         @relation("BuyerInquiries")
   inquiriesRecv   Inquiry[]         @relation("SellerInquiries")
+  subscriptions   Subscription[]
 
   @@index([role])
+}
+
+// A purchased listing pack. Each row is one Razorpay payment granting
+// `listingsQuota` listings valid until `expiresAt` (1 year). Quota is consumed
+// on listing creation (credit-pack model): `listingsUsed` only ever increments,
+// deleting a listing does not refund. Active packs stack — a user's remaining
+// allowance is the free-tier remainder plus the sum of (quota - used) across all
+// active, non-expired packs.
+model Subscription {
+  id                String    @id @default(cuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId            String    // plan_100 | plan_365
+  listingsQuota     Int
+  listingsUsed      Int       @default(0)
+  amount            Int       // amount charged, in paise
+  currency          String    @default("INR")
+  status            String    @default("created") // created | active | failed
+  razorpayOrderId   String?
+  razorpayPaymentId String?
+  createdAt         DateTime  @default(now())
+  activatedAt       DateTime?
+  expiresAt         DateTime?
+
+  @@index([userId])
+  @@index([status])
 }
 
 model Property {

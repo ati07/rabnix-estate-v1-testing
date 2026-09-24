@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth';
 import { serializeProperty } from '@/lib/serialize';
 import { INITIAL_PROPERTIES } from '@/lib/realEstateData';
+import { getEntitlement, consumeListingCredit } from '@/lib/billing';
 import type { Property } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -69,19 +70,50 @@ export async function POST(req: NextRequest) {
     if (!b.price || !b.city || !b.locality) {
       return NextResponse.json({ success: false, error: 'City, locality and price are required.' }, { status: 400 });
     }
+    // Capture narrowed required fields — TS loses the narrowing inside the
+    // transaction closure below.
+    const price = b.price;
+    const city = b.city;
+    const locality = b.locality;
 
-    const created = await prisma.property.create({
-      data: {
+    // Listing quota: admins are unlimited; everyone else gets FREE_LISTINGS free,
+    // then needs an active plan with remaining quota. (Race-safe consume happens
+    // inside the transaction below; this is the fast, friendly pre-check.)
+    const entitlement = await getEntitlement(user.id, user.role);
+    if (!entitlement.unlimited && !entitlement.canCreate) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'listing-quota-exceeded',
+          message:
+            'You have used all your listings. Buy a plan from your dashboard to post more properties.',
+        },
+        { status: 402 },
+      );
+    }
+
+    const created = await prisma.$transaction(async (tx) => {
+      // Atomically consume one credit unless the user is an admin. If nothing is
+      // available (e.g. a race emptied the quota), abort the whole transaction.
+      if (!entitlement.unlimited) {
+        const consumed = await consumeListingCredit(tx, user.id);
+        if (!consumed) {
+          throw new Error('listing-quota-exceeded');
+        }
+      }
+
+      const property = await tx.property.create({
+        data: {
         title: b.title || 'Residential Property',
         tagline: b.tagline,
         listingType: b.listingType || 'buy',
         category: b.category || 'Apartment',
-        city: b.city,
-        locality: b.locality,
+        city: city,
+        locality: locality,
         subLocality: b.subLocality,
-        price: b.price,
-        priceFormatted: b.priceFormatted || `₹${b.price.toLocaleString('en-IN')}`,
-        pricePerSqFt: b.pricePerSqFt ?? (b.carpetAreaSqFt ? Math.round(b.price / b.carpetAreaSqFt) : undefined),
+        price: price,
+        priceFormatted: b.priceFormatted || `₹${price.toLocaleString('en-IN')}`,
+        pricePerSqFt: b.pricePerSqFt ?? (b.carpetAreaSqFt ? Math.round(price / b.carpetAreaSqFt) : undefined),
         maintenance: b.maintenance,
         bhk: b.bhk,
         bathrooms: b.bathrooms ?? 1,
@@ -113,23 +145,36 @@ export async function POST(req: NextRequest) {
         nearbyLandmarks: (b.nearbyLandmarks as object) ?? undefined,
         coordinates: (b.coordinates as object) ?? undefined,
         postedByUserId: user.id,
-      },
-    });
+        },
+      });
 
-    await prisma.activityLog.create({
-      data: {
-        action: 'property_created',
-        actorName: user.name,
-        actorRole: user.role.toUpperCase(),
-        details: `Submitted new listing for review in ${created.city}.`,
-        targetTitle: created.title,
-        targetId: created.id,
-        severity: 'info',
-      },
+      await tx.activityLog.create({
+        data: {
+          action: 'property_created',
+          actorName: user.name,
+          actorRole: user.role.toUpperCase(),
+          details: `Submitted new listing for review in ${property.city}.`,
+          targetTitle: property.title,
+          targetId: property.id,
+          severity: 'info',
+        },
+      });
+
+      return property;
     });
 
     return NextResponse.json({ success: true, property: serializeProperty(created) });
   } catch (err: any) {
+    if (err?.message === 'listing-quota-exceeded') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'listing-quota-exceeded',
+          message: 'You have used all your listings. Buy a plan to post more properties.',
+        },
+        { status: 402 },
+      );
+    }
     console.error('POST /api/properties error', err);
     return NextResponse.json({ success: false, error: 'Failed to create listing' }, { status: 500 });
   }
