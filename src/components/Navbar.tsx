@@ -351,15 +351,6 @@ export function Navbar({
                     </Link>
 
                     <Link
-                      href="/admin"
-                      onClick={() => setIsUserMenuOpen(false)}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-amber-900 bg-amber-50 hover:bg-amber-100 rounded-lg transition-colors font-bold border border-amber-200"
-                    >
-                      <ShieldCheck className="w-4 h-4 text-amber-700" />
-                      <span>Admin Verification Portal</span>
-                    </Link>
-
-                    <Link
                       href="/properties"
                       onClick={() => setIsUserMenuOpen(false)}
                       className="w-full flex items-center gap-2.5 px-3 py-2 text-[#172033] hover:bg-[#F8FAFC] hover:text-[#18A67D] rounded-lg transition-colors font-semibold"
