@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, use } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -61,6 +61,16 @@ export default function PropertyDetailsPage({ params }: { params: Promise<{ id: 
   const [loanTenureYears, setLoanTenureYears] = useState(20);
   const [interestRatePercent, setInterestRatePercent] = useState(8.5);
   const [isCopied, setIsCopied] = useState(false);
+
+  // Record a real view once per browser session for this listing (avoids
+  // inflating the count on refresh or React strict-mode double mounts).
+  useEffect(() => {
+    if (!property || property.id !== propertyId) return;
+    const key = `rabnix_viewed_${propertyId}`;
+    if (typeof window === 'undefined' || sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, '1');
+    fetch(`/api/properties/${propertyId}/view`, { method: 'POST', keepalive: true }).catch(() => {});
+  }, [property?.id, propertyId]);
 
   // Calculate EMI
   const loanAmount = Math.max(0, propertyPrice * (1 - downPaymentPercent / 100));
@@ -358,10 +368,10 @@ export default function PropertyDetailsPage({ params }: { params: Promise<{ id: 
                   Monthly Maintenance: <strong>₹{property.maintenance || 3500}/mo</strong>
                 </span>
                 <span className="px-3 py-1 bg-[#F1F5F9] rounded-lg font-medium text-[#0F2A43]">
-                  Total Views: <strong>{property.viewsCount || 240}</strong>
+                  Total Views: <strong>{property.viewsCount ?? 0}</strong>
                 </span>
                 <span className="px-3 py-1 bg-[#F1F5F9] rounded-lg font-medium text-[#0F2A43]">
-                  Direct Inquiries: <strong>{property.inquiriesCount || 8}</strong>
+                  Direct Inquiries: <strong>{property.inquiriesCount ?? 0}</strong>
                 </span>
               </div>
             </div>

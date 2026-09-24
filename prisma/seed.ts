@@ -106,8 +106,8 @@ async function main() {
         rejectionReason: verificationStatus === 'rejected'
           ? 'RERA registration number mismatch with state portal records. Please re-upload verified certificate.'
           : undefined,
-        inquiriesCount: Math.floor(Math.random() * 18) + 2,
-        viewsCount: Math.floor(Math.random() * 320) + 45,
+        inquiriesCount: 0,
+        viewsCount: 0,
         documentsSubmitted: [
           'Encumbrance Certificate (EC)',
           'Approved Floor Sanction Plan',

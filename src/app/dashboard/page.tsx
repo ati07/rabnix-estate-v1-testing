@@ -322,12 +322,13 @@ export default function UserDashboardPage() {
 
   // Aggregate Metrics for Analytics
   const totalViews = useMemo(() => {
-    return myPostedProperties.reduce((acc, p) => acc + (p.viewsCount || 48), 0);
+    return myPostedProperties.reduce((acc, p) => acc + (p.viewsCount ?? 0), 0);
   }, [myPostedProperties]);
 
+  // Real leads received across this owner's listings (each inquiry is one row).
   const totalInquiriesCount = useMemo(() => {
-    return myPostedProperties.reduce((acc, p) => acc + (p.inquiriesCount || 3), 0) + receivedInquiries.length;
-  }, [myPostedProperties, receivedInquiries]);
+    return receivedInquiries.length;
+  }, [receivedInquiries]);
 
   // Chart Data Calculations
   const viewsTrendData = useMemo(() => {
@@ -370,8 +371,8 @@ export default function UserDashboardPage() {
     }
     return myPostedProperties.slice(0, 5).map((p) => ({
       name: p.title.length > 18 ? p.title.substring(0, 18) + '...' : p.title,
-      views: p.viewsCount || 85,
-      leads: p.inquiriesCount || 8
+      views: p.viewsCount ?? 0,
+      leads: p.inquiriesCount ?? 0
     }));
   }, [myPostedProperties]);
 
@@ -501,7 +502,7 @@ export default function UserDashboardPage() {
     properties.forEach((p) => {
       if (!counts[p.city]) counts[p.city] = { listings: 0, inquiries: 0 };
       counts[p.city].listings += 1;
-      counts[p.city].inquiries += p.inquiriesCount || 2;
+      counts[p.city].inquiries += p.inquiriesCount ?? 0;
     });
     return Object.keys(counts).slice(0, 6).map((city) => ({
       city,
@@ -1898,11 +1899,11 @@ export default function UserDashboardPage() {
                             <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#E2E8F0] text-xs">
                               <div className="flex items-center gap-1.5 text-[#0F2A43] font-bold">
                                 <Eye className="w-4 h-4 text-[#18A67D]" />
-                                <span>{p.viewsCount || 64} Views</span>
+                                <span>{p.viewsCount ?? 0} Views</span>
                               </div>
                               <div className="flex items-center gap-1.5 text-[#0E7C5D] font-bold">
                                 <MessageSquare className="w-4 h-4 text-[#18A67D]" />
-                                <span>{p.inquiriesCount || 3} Inquiries</span>
+                                <span>{p.inquiriesCount ?? 0} Inquiries</span>
                               </div>
                             </div>
                           </div>
