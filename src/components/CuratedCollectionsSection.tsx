@@ -1,11 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, ShieldCheck, CheckCircle2, Crown, Sparkles, IndianRupee } from 'lucide-react';
 import { SearchFilters } from '@/lib/types';
-import { CURATED_COLLECTIONS } from '@/lib/collectionsData';
+import { CURATED_COLLECTIONS, CuratedCollection } from '@/lib/collectionsData';
 
 interface CuratedCollectionsProps {
   cityName: string;
@@ -13,7 +13,23 @@ interface CuratedCollectionsProps {
 }
 
 export function CuratedCollectionsSection({ cityName, onApplyPreset }: CuratedCollectionsProps) {
-  const collections = CURATED_COLLECTIONS.slice(0, 4);
+  // Static data is the first-paint fallback; overwrite with live DB data if present.
+  const [allCollections, setAllCollections] = useState<CuratedCollection[]>(CURATED_COLLECTIONS);
+
+  useEffect(() => {
+    let active = true;
+    fetch('/api/collections')
+      .then((r) => r.json())
+      .then((d) => {
+        if (active && d?.success && Array.isArray(d.collections) && d.collections.length) {
+          setAllCollections(d.collections);
+        }
+      })
+      .catch(() => { /* keep static fallback */ });
+    return () => { active = false; };
+  }, []);
+
+  const collections = allCollections.slice(0, 4);
 
   return (
     <section className="w-full bg-[#F8FAFC] py-12 border-b border-[#E2E8F0]">
@@ -35,7 +51,7 @@ export function CuratedCollectionsSection({ cityName, onApplyPreset }: CuratedCo
               href="/collections"
               className="text-xs font-bold text-[#18A67D] hover:text-[#0E7C5D] flex items-center gap-1 group/link"
             >
-              <span>Explore All Portfolios ({CURATED_COLLECTIONS.length})</span>
+              <span>Explore All Portfolios ({allCollections.length})</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 transition-transform" />
             </Link>
           </div>

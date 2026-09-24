@@ -1,17 +1,33 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Award, ShieldCheck, Building2, ExternalLink, ArrowRight, Star } from 'lucide-react';
-import { BUILDERS_DATA } from '@/lib/buildersData';
+import { BUILDERS_DATA, Builder } from '@/lib/buildersData';
 
 interface TopBuildersProps {
   cityName: string;
 }
 
 export function TopBuildersSection({ cityName }: TopBuildersProps) {
-  const builders = BUILDERS_DATA.slice(0, 4);
+  // Static data is the first-paint fallback; overwrite with live DB data if present.
+  const [allBuilders, setAllBuilders] = useState<Builder[]>(BUILDERS_DATA);
+
+  useEffect(() => {
+    let active = true;
+    fetch('/api/builders')
+      .then((r) => r.json())
+      .then((d) => {
+        if (active && d?.success && Array.isArray(d.builders) && d.builders.length) {
+          setAllBuilders(d.builders);
+        }
+      })
+      .catch(() => { /* keep static fallback */ });
+    return () => { active = false; };
+  }, []);
+
+  const builders = allBuilders.slice(0, 4);
 
   return (
     <section className="w-full bg-white py-12 border-b border-[#E2E8F0]">
@@ -33,7 +49,7 @@ export function TopBuildersSection({ cityName }: TopBuildersProps) {
               href="/builders"
               className="text-xs font-bold text-[#18A67D] hover:text-[#0E7C5D] flex items-center gap-1 group/link"
             >
-              <span>Explore All Builders ({BUILDERS_DATA.length})</span>
+              <span>Explore All Builders ({allBuilders.length})</span>
               <ArrowRight className="w-3.5 h-3.5 group-hover/link:translate-x-0.5 transition-transform" />
             </Link>
           </div>

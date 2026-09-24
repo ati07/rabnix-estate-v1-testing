@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Search, 
   MapPin, 
@@ -54,6 +54,28 @@ export function HeroSearch({
   const [showBudgetDropdown, setShowBudgetDropdown] = useState(false);
   const [showBhkDropdown, setShowBhkDropdown] = useState(false);
   const [showLocalitySuggestions, setShowLocalitySuggestions] = useState(false);
+  // Locality suggestions come from the DB (approved-listing localities for the
+  // selected city); the city's static popularLocalities is the fallback.
+  const [dbLocalities, setDbLocalities] = useState<string[]>([]);
+
+  useEffect(() => {
+    const city = selectedCity?.name;
+    if (!city || city === 'All Cities') { setDbLocalities([]); return; }
+    let active = true;
+    fetch(`/api/localities?city=${encodeURIComponent(city)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (active && d?.success && Array.isArray(d.localities) && d.localities.length) {
+          setDbLocalities(d.localities.map((l: { name: string }) => l.name).filter(Boolean));
+        } else if (active) {
+          setDbLocalities([]);
+        }
+      })
+      .catch(() => { if (active) setDbLocalities([]); });
+    return () => { active = false; };
+  }, [selectedCity?.name]);
+
+  const localitySource = dbLocalities.length ? dbLocalities : selectedCity.popularLocalities;
 
   const availableCategories = PROPERTY_TYPES_BY_LISTING[currentListingType] || [];
 
@@ -135,7 +157,7 @@ export function HeroSearch({
     return 'Property Type';
   };
 
-  const matchingLocalities = selectedCity.popularLocalities.filter(l => 
+  const matchingLocalities = localitySource.filter(l =>
     !localityQuery || l.toLowerCase().includes(localityQuery.toLowerCase())
   );
 
@@ -235,7 +257,7 @@ export function HeroSearch({
                           onExecuteSearch();
                         }
                       }}
-                      placeholder={`Search localities in ${selectedCity.name} (e.g. ${selectedCity.popularLocalities.slice(0, 2).join(', ')})`}
+                      placeholder={`Search localities in ${selectedCity.name} (e.g. ${localitySource.slice(0, 2).join(', ')})`}
                       className="w-full text-xs sm:text-sm font-medium text-[#172033] bg-transparent outline-none placeholder:text-[#64748B]"
                     />
                   </div>
