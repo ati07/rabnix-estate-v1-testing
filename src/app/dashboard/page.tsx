@@ -330,36 +330,19 @@ export default function UserDashboardPage() {
     return receivedInquiries.length;
   }, [receivedInquiries]);
 
-  // Chart Data Calculations
-  const viewsTrendData = useMemo(() => {
-    if (graphTimeframe === '7d') {
-      return [
-        { day: 'Mon', views: 45, uniqueVisitors: 32, inquiries: 4 },
-        { day: 'Tue', views: 72, uniqueVisitors: 51, inquiries: 6 },
-        { day: 'Wed', views: 98, uniqueVisitors: 68, inquiries: 9 },
-        { day: 'Thu', views: 84, uniqueVisitors: 59, inquiries: 5 },
-        { day: 'Fri', views: 130, uniqueVisitors: 92, inquiries: 14 },
-        { day: 'Sat', views: 195, uniqueVisitors: 142, inquiries: 22 },
-        { day: 'Sun', views: 220, uniqueVisitors: 165, inquiries: 28 }
-      ];
-    } else if (graphTimeframe === '6m') {
-      return [
-        { day: 'Oct', views: 680, uniqueVisitors: 490, inquiries: 48 },
-        { day: 'Nov', views: 820, uniqueVisitors: 610, inquiries: 62 },
-        { day: 'Dec', views: 1140, uniqueVisitors: 840, inquiries: 94 },
-        { day: 'Jan', views: 1450, uniqueVisitors: 1050, inquiries: 118 },
-        { day: 'Feb', views: 1780, uniqueVisitors: 1290, inquiries: 142 },
-        { day: 'Mar', views: 2150, uniqueVisitors: 1560, inquiries: 185 }
-      ];
-    }
-    // 30 days
-    return [
-      { day: 'Week 1', views: 320, uniqueVisitors: 240, inquiries: 24 },
-      { day: 'Week 2', views: 480, uniqueVisitors: 360, inquiries: 38 },
-      { day: 'Week 3', views: 620, uniqueVisitors: 450, inquiries: 52 },
-      { day: 'Week 4', views: 790, uniqueVisitors: 580, inquiries: 71 }
-    ];
-  }, [graphTimeframe]);
+  // Real views / unique visitors / inquiries trend, fetched from the analytics
+  // API (bucketed by the selected timeframe, scoped to this user's listings).
+  const [viewsTrendData, setViewsTrendData] = useState<
+    { day: string; views: number; uniqueVisitors: number; inquiries: number }[]
+  >([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/analytics?range=${graphTimeframe}`, { credentials: 'same-origin' })
+      .then((r) => r.json())
+      .then((d) => { if (!cancelled && Array.isArray(d?.points)) setViewsTrendData(d.points); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [graphTimeframe, user?.id]);
 
   const propertyLeadsData = useMemo(() => {
     if (myPostedProperties.length === 0) {

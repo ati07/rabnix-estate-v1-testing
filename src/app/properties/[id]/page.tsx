@@ -63,13 +63,27 @@ export default function PropertyDetailsPage({ params }: { params: Promise<{ id: 
   const [isCopied, setIsCopied] = useState(false);
 
   // Record a real view once per browser session for this listing (avoids
-  // inflating the count on refresh or React strict-mode double mounts).
+  // inflating the count on refresh or React strict-mode double mounts). Sends a
+  // stable anonymous visitorKey so unique-visitor analytics are real.
   useEffect(() => {
     if (!property || property.id !== propertyId) return;
-    const key = `rabnix_viewed_${propertyId}`;
-    if (typeof window === 'undefined' || sessionStorage.getItem(key)) return;
-    sessionStorage.setItem(key, '1');
-    fetch(`/api/properties/${propertyId}/view`, { method: 'POST', keepalive: true }).catch(() => {});
+    if (typeof window === 'undefined') return;
+    const seenKey = `rabnix_viewed_${propertyId}`;
+    if (sessionStorage.getItem(seenKey)) return;
+    sessionStorage.setItem(seenKey, '1');
+
+    let visitorKey = localStorage.getItem('rabnix_visitor_key');
+    if (!visitorKey) {
+      visitorKey = (crypto.randomUUID?.() ?? `v_${Date.now()}_${Math.random().toString(36).slice(2)}`);
+      localStorage.setItem('rabnix_visitor_key', visitorKey);
+    }
+
+    fetch(`/api/properties/${propertyId}/view`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ visitorKey }),
+      keepalive: true,
+    }).catch(() => {});
   }, [property?.id, propertyId]);
 
   // Calculate EMI

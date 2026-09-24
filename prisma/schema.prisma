@@ -85,11 +85,31 @@ model Property {
   postedByUser         User?    @relation("PostedProperties", fields: [postedByUserId], references: [id], onDelete: SetNull)
 
   inquiries            Inquiry[]
+  views                PropertyView[]
 
   @@index([city])
   @@index([listingType])
   @@index([verificationStatus])
   @@index([postedByUserId])
+}
+
+// One row per real property-page view. Powers the dashboard trend charts
+// (views / unique visitors over time). ownerUserId is denormalized from the
+// property so owner-scoped analytics avoid a join; visitorKey is an anonymous
+// stable per-browser id used to count unique visitors.
+model PropertyView {
+  id           String   @id @default(cuid())
+  propertyId   String
+  ownerUserId  String?
+  viewerUserId String?
+  visitorKey   String
+  createdAt    DateTime @default(now())
+
+  property     Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@index([ownerUserId])
+  @@index([createdAt])
 }
 
 model Inquiry {
