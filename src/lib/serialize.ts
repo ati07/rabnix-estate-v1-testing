@@ -4,12 +4,12 @@ import type {
   ActivityLog as DbLog,
   Builder as DbBuilder,
   FeaturedProject as DbFeaturedProject,
-  Agent as DbAgent,
+  User as DbUser,
   Collection as DbCollection,
 } from '@prisma/client';
 import type { Property, PropertyInquiry, SystemActivityLog } from '@/lib/types';
 import type { Builder, BuilderProject } from '@/lib/buildersData';
-import type { FeaturedProjectItem, PreferredAgentItem, AgentReview, ProjectFloorPlan, ProjectNearby } from '@/lib/homeSectionsData';
+import type { FeaturedProjectItem, PreferredAgentItem, ProjectFloorPlan, ProjectNearby } from '@/lib/homeSectionsData';
 import type { CuratedCollection } from '@/lib/collectionsData';
 
 /** Convert a DB Property row into the Property shape the UI components expect. */
@@ -150,32 +150,44 @@ export function serializeFeaturedProject(p: DbFeaturedProject): FeaturedProjectI
   };
 }
 
-/** DB Agent row -> PreferredAgentItem (from homeSectionsData.ts). */
-export function serializeAgent(a: DbAgent): PreferredAgentItem {
+// Generic professional placeholders when an agent hasn't uploaded imagery yet.
+const AGENT_DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=200&q=80';
+const AGENT_DEFAULT_LOGO = 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=200&q=80';
+
+/**
+ * A preferred-agent User row -> PreferredAgentItem (from homeSectionsData.ts).
+ * Preferred agents are now Users (role='agent', isPreferredAgent=true), so the
+ * directory card is derived from their account + marketing profile. Listing
+ * counts are computed live from their properties and passed in by the caller.
+ */
+export function serializeAgentUser(
+  u: DbUser,
+  counts: { forSale: number; forRent: number },
+): PreferredAgentItem {
   return {
-    id: a.id,
-    name: a.name,
-    avatar: a.avatar,
-    badge: a.badge,
-    agencyName: a.agencyName,
-    agencyLogo: a.agencyLogo,
-    operatingSince: a.operatingSince,
-    experienceYears: a.experienceYears ?? undefined,
-    buyersServed: a.buyersServed,
-    propertiesForSaleCount: a.propertiesForSaleCount,
-    propertiesForRentCount: a.propertiesForRentCount ?? undefined,
-    city: a.city,
-    rating: a.rating,
-    phone: a.phone,
-    email: a.email ?? undefined,
-    reraId: a.reraId ?? undefined,
-    address: a.address ?? undefined,
-    about: a.about ?? undefined,
-    specializations: a.specializations,
-    areasServed: a.areasServed,
-    languages: a.languages,
-    reviews: (a.reviews as unknown as AgentReview[]) ?? undefined,
-    verifiedDocuments: a.verifiedDocuments,
+    id: u.id,
+    name: u.name,
+    avatar: u.avatar || AGENT_DEFAULT_AVATAR,
+    badge: u.agentBadge || 'Rabnix Preferred',
+    agencyName: u.companyName || 'Independent Agent',
+    agencyLogo: u.agencyLogo || AGENT_DEFAULT_LOGO,
+    operatingSince: u.operatingSince ?? u.createdAt.getFullYear(),
+    experienceYears: u.experienceYears ?? undefined,
+    buyersServed: u.buyersServed ?? '0',
+    propertiesForSaleCount: counts.forSale,
+    propertiesForRentCount: counts.forRent,
+    city: u.city ?? '',
+    rating: u.agentRating ?? 4.5,
+    phone: u.phone,
+    email: u.email ?? undefined,
+    reraId: u.reraNumber ?? undefined,
+    address: undefined,
+    about: u.agentAbout ?? undefined,
+    specializations: u.specializations,
+    areasServed: u.areasServed,
+    languages: u.languages,
+    reviews: undefined,
+    verifiedDocuments: undefined,
   };
 }
 

@@ -57,6 +57,18 @@ interface AuthContextType {
       companyName: string;
       reraNumber: string;
       password: string;
+      // Preferred Agent curation (admin-managed).
+      isPreferredAgent: boolean;
+      agentBadge: string;
+      agentRating: number | string;
+      agencyLogo: string;
+      operatingSince: number | string;
+      experienceYears: number | string;
+      buyersServed: string;
+      agentAbout: string;
+      specializations: string[] | string;
+      areasServed: string[] | string;
+      languages: string[] | string;
     }>
   ) => Promise<{ success: boolean; error?: string }>;
   logActivity: (log: Omit<SystemActivityLog, 'id' | 'timestamp'>) => void;

@@ -244,7 +244,7 @@ export default function AgentDetailsPage({ params }: { params: Promise<{ id: str
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
               <div className="text-xs text-[#64748B] font-medium">Properties for Sale</div>
               <div className="text-lg sm:text-xl font-extrabold text-[#0F2A43] mt-0.5">
-                {agent.propertiesForSaleCount || 111} Listings
+                {agent.propertiesForSaleCount ?? 0} Listings
               </div>
             </div>
 

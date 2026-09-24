@@ -53,7 +53,9 @@ import {
   Pencil,
   UserPlus,
   Loader2,
-  Save
+  Save,
+  Star,
+  Award
 } from 'lucide-react';
 import { useAuth } from '@/lib/authContext';
 import { useProperties } from '@/lib/propertyContext';
@@ -99,7 +101,7 @@ export default function AdminPortalPage() {
   } = useProperties();
 
   // Navigation Tabs in Admin Suite
-  const [activeTab, setActiveTab] = useState<'overview' | 'moderation' | 'users' | 'activity' | 'trends' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'moderation' | 'users' | 'agents' | 'activity' | 'trends' | 'settings'>('overview');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Moderation Filters
@@ -117,6 +119,12 @@ export default function AdminPortalPage() {
   const [blockCustomReason, setBlockCustomReason] = useState('Multiple policy violations or duplicate spam listings reported.');
   const [createUserModalOpen, setCreateUserModalOpen] = useState(false);
   const [editUserTarget, setEditUserTarget] = useState<UserProfile | null>(null);
+
+  // Preferred Agent curation. Agents are Users (role='agent'); admins decide who
+  // appears in the public directory (isPreferredAgent) and edit their editorial
+  // fields (badge, rating). The agents themselves manage the rest of their profile.
+  const [agentSearchQuery, setAgentSearchQuery] = useState('');
+  const [editAgentTarget, setEditAgentTarget] = useState<UserProfile | null>(null);
 
   // Activity Stream Filters
   const [activityFilterAction, setActivityFilterAction] = useState<string>('all');
@@ -314,6 +322,45 @@ export default function AdminPortalPage() {
     showBanner(`Reinstated user "${u.name}" to active standing.`);
   };
 
+  // ----------------------------------------------------
+  // PREFERRED AGENT CURATION (agents are Users, role='agent')
+  // ----------------------------------------------------
+  const agentUsers = useMemo(
+    () => users.filter((u) => u.role === 'agent'),
+    [users]
+  );
+  const preferredAgentCount = useMemo(
+    () => agentUsers.filter((u) => u.isPreferredAgent).length,
+    [agentUsers]
+  );
+
+  // Toggle whether an agent appears in the public directory. Reuses the admin
+  // user PATCH, which refreshes the admin data set on success.
+  const handleTogglePreferred = async (u: UserProfile) => {
+    const next = !u.isPreferredAgent;
+    const res = await updateUser(u.id, { isPreferredAgent: next });
+    if (res.success) {
+      showBanner(next
+        ? `Added "${u.name}" to the Preferred Agents directory.`
+        : `Removed "${u.name}" from the Preferred Agents directory.`);
+    } else {
+      showBanner(res.error || 'Failed to update agent.');
+    }
+  };
+
+  const filteredAgents = useMemo(() => {
+    const q = agentSearchQuery.trim().toLowerCase();
+    if (!q) return agentUsers;
+    return agentUsers.filter((a) =>
+      a.name.toLowerCase().includes(q) ||
+      (a.companyName || '').toLowerCase().includes(q) ||
+      (a.city || '').toLowerCase().includes(q) ||
+      (a.email || '').toLowerCase().includes(q) ||
+      (a.areasServed || []).some((x) => x.toLowerCase().includes(q)) ||
+      (a.specializations || []).some((x) => x.toLowerCase().includes(q))
+    );
+  }, [agentUsers, agentSearchQuery]);
+
   // While the session resolves, or while redirecting a non-admin away, render a
   // neutral placeholder instead of the admin shell.
   if (!isAuthReady || user?.role !== 'admin') {
@@ -509,7 +556,31 @@ export default function AdminPortalPage() {
               </span>
             </button>
 
-            {/* 4. Activity Stream */}
+            {/* 4. Preferred Agent Catalog */}
+            <button
+              id="admin-sidebar-agents"
+              onClick={() => {
+                setActiveTab('agents');
+                setMobileSidebarOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+                activeTab === 'agents'
+                  ? 'bg-[#0F2A43] text-white font-black shadow-xs'
+                  : 'hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#0F2A43]'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Award className={`w-4 h-4 ${activeTab === 'agents' ? 'text-[#22C39A]' : 'text-teal-600'}`} />
+                <span>Preferred Agents</span>
+              </div>
+              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                activeTab === 'agents' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'
+              }`}>
+                {preferredAgentCount}
+              </span>
+            </button>
+
+            {/* 5. Activity Stream */}
             <button
               id="admin-sidebar-activity"
               onClick={() => {
@@ -1467,6 +1538,150 @@ export default function AdminPortalPage() {
         )}
 
         {/* ---------------------------------------------------- */}
+        {/* TAB: PREFERRED AGENT CATALOG                         */}
+        {/* ---------------------------------------------------- */}
+        {activeTab === 'agents' && (
+          <div className="space-y-5 animate-in fade-in duration-200">
+
+            {/* Context note: curation, not creation */}
+            <div className="p-4 rounded-2xl bg-teal-50 border border-teal-200 text-teal-900 text-xs font-medium flex items-start gap-2.5">
+              <Award className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
+              <span>
+                Agents are real accounts (users with the <strong>Agent</strong> role) who manage their own marketing profile.
+                Here you decide who is featured as a <strong>Rabnix Preferred Agent</strong> on the public
+                {' '}<Link href="/agents" className="underline font-bold">/agents</Link> directory and homepage, and you set the
+                editorial <strong>badge</strong> and <strong>rating</strong>. Promoted agents appear instantly. Listing counts are
+                computed live from each agent&apos;s approved properties.
+              </span>
+            </div>
+
+            {/* Toolbar */}
+            <div className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-xs">
+              <div className="relative">
+                <Search className="w-4 h-4 text-[#94A3B8] absolute left-3 top-3" />
+                <input
+                  type="text"
+                  value={agentSearchQuery}
+                  onChange={(e) => setAgentSearchQuery(e.target.value)}
+                  placeholder="Search agents by name, agency, city, email, area served, or specialization..."
+                  className="w-full pl-9 pr-4 py-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs sm:text-sm font-medium outline-none focus:bg-white focus:border-[#18A67D]"
+                />
+              </div>
+            </div>
+
+            {/* Agents Table */}
+            <div className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs overflow-hidden">
+              <div className="p-4 border-b border-[#F1F5F9] flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-extrabold text-[#0F2A43]">
+                  <Award className="w-4 h-4 text-[#18A67D]" />
+                  <span>AGENTS ({filteredAgents.length}) · {preferredAgentCount} PREFERRED</span>
+                </div>
+              </div>
+
+              {filteredAgents.length === 0 ? (
+                <div className="p-12 text-center space-y-3">
+                  <Award className="w-12 h-12 text-slate-300 mx-auto" />
+                  <h3 className="text-base font-bold text-[#0F2A43]">No agents found</h3>
+                  <p className="text-xs text-[#64748B]">No accounts have the Agent role yet, or the search filter excludes them all.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[#F8FAFC] text-[#64748B] uppercase font-bold text-[10px] tracking-wider border-b border-[#E2E8F0]">
+                      <tr>
+                        <th className="py-3.5 px-4">Agent</th>
+                        <th className="py-3.5 px-4">Agency</th>
+                        <th className="py-3.5 px-4">City</th>
+                        <th className="py-3.5 px-4">Rating</th>
+                        <th className="py-3.5 px-4">Directory</th>
+                        <th className="py-3.5 px-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#F1F5F9]">
+                      {filteredAgents.map((a) => (
+                        <tr key={a.id} className="hover:bg-[#F8FAFC] transition-colors">
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100 relative shrink-0 border border-slate-200">
+                                {a.avatar ? (
+                                  <Image src={a.avatar} alt={a.name} fill className="object-cover" referrerPolicy="no-referrer" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-[#94A3B8] font-bold">
+                                    {a.name.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                              </div>
+                              <div>
+                                <div className="font-bold text-[#0F2A43]">{a.name}</div>
+                                <div className="text-[11px] text-[#64748B]">{a.isPreferredAgent ? (a.agentBadge || 'Rabnix Preferred') : a.email}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="font-semibold text-[#0F2A43] truncate max-w-40">{a.companyName || '—'}</div>
+                            {typeof a.operatingSince === 'number' && (
+                              <div className="text-[10px] text-slate-500">Since {a.operatingSince}</div>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className="inline-flex items-center gap-1 text-[#0F2A43] font-medium">
+                              <MapPin className="w-3 h-3 text-[#94A3B8]" />
+                              {a.city || '—'}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <span className="inline-flex items-center gap-1 font-bold text-[#0F2A43]">
+                              <Star className="w-3 h-3 text-amber-500 fill-amber-500" />
+                              {typeof a.agentRating === 'number' ? a.agentRating : '—'}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4">
+                            {a.isPreferredAgent ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold text-[10px] border border-emerald-200">
+                                <Award className="w-3 h-3" /> Preferred
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-bold text-[10px]">
+                                Not listed
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => setEditAgentTarget(a)}
+                                className="px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 bg-slate-50 hover:bg-slate-100 text-[#0F2A43] border border-slate-200 transition-all cursor-pointer"
+                                title="Edit editorial fields"
+                              >
+                                <Pencil className="w-3 h-3" />
+                                <span>Edit</span>
+                              </button>
+                              <button
+                                onClick={() => handleTogglePreferred(a)}
+                                className={`px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 transition-all cursor-pointer border ${
+                                  a.isPreferredAgent
+                                    ? 'bg-white hover:bg-rose-50 text-rose-600 border-rose-200'
+                                    : 'bg-[#0F2A43] hover:bg-[#163b5c] text-white border-transparent'
+                                }`}
+                                title={a.isPreferredAgent ? 'Remove from directory' : 'Feature in directory'}
+                              >
+                                <Award className="w-3 h-3" />
+                                <span>{a.isPreferredAgent ? 'Demote' : 'Promote'}</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+          </div>
+        )}
+
+        {/* ---------------------------------------------------- */}
         {/* TAB 3: ALL ACTIVITY STREAM                           */}
         {/* ---------------------------------------------------- */}
         {activeTab === 'activity' && (
@@ -1897,6 +2112,22 @@ export default function AdminPortalPage() {
       )}
 
       {/* ---------------------------------------------------- */}
+      {/* MODAL: EDIT PREFERRED AGENT (editorial fields)       */}
+      {/* ---------------------------------------------------- */}
+      {editAgentTarget && (
+        <AgentFormModal
+          key={editAgentTarget.id}
+          target={editAgentTarget}
+          onClose={() => setEditAgentTarget(null)}
+          onSubmit={async (data) => {
+            const res = await updateUser(editAgentTarget.id, data);
+            if (res.success) showBanner(`Updated agent profile for "${editAgentTarget.name}".`);
+            return res;
+          }}
+        />
+      )}
+
+      {/* ---------------------------------------------------- */}
       {/* MODAL: REJECT PROPERTY LISTING                       */}
       {/* ---------------------------------------------------- */}
       {rejectionModalProperty && (
@@ -2208,6 +2439,175 @@ function UserFormModal({
             >
               {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
               <span>{mode === 'create' ? 'Create Account' : 'Save Changes'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------
+// Create / Edit preferred agent (catalog directory entry, admin only)
+// ------------------------------------------------------------------
+// Admin editor for an agent's directory presence. Agents own most of their
+// profile via the dashboard; the admin controls the editorial fields (badge,
+// rating, whether they are featured) and can correct core marketing fields.
+function AgentFormModal({
+  target,
+  onClose,
+  onSubmit,
+}: {
+  target: UserProfile;
+  onClose: () => void;
+  onSubmit: (data: Record<string, unknown>) => Promise<{ success: boolean; error?: string }>;
+}) {
+  const [isPreferredAgent, setIsPreferredAgent] = useState(!!target.isPreferredAgent);
+  const [agentBadge, setAgentBadge] = useState(target.agentBadge || '');
+  const [agentRating, setAgentRating] = useState(typeof target.agentRating === 'number' ? String(target.agentRating) : '');
+  const [companyName, setCompanyName] = useState(target.companyName || '');
+  const [agencyLogo, setAgencyLogo] = useState(target.agencyLogo || '');
+  const [operatingSince, setOperatingSince] = useState(typeof target.operatingSince === 'number' ? String(target.operatingSince) : '');
+  const [experienceYears, setExperienceYears] = useState(typeof target.experienceYears === 'number' ? String(target.experienceYears) : '');
+  const [buyersServed, setBuyersServed] = useState(target.buyersServed || '');
+  const [reraNumber, setReraNumber] = useState(target.reraNumber || '');
+  const [about, setAbout] = useState(target.agentAbout || '');
+  const [specializations, setSpecializations] = useState((target.specializations || []).join(', '));
+  const [areasServed, setAreasServed] = useState((target.areasServed || []).join(', '));
+  const [languages, setLanguages] = useState((target.languages || []).join(', '));
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    const payload: Record<string, unknown> = {
+      isPreferredAgent,
+      agentBadge: agentBadge.trim(),
+      agentRating,
+      companyName: companyName.trim(),
+      agencyLogo: agencyLogo.trim(),
+      operatingSince,
+      experienceYears,
+      buyersServed: buyersServed.trim(),
+      reraNumber: reraNumber.trim(),
+      agentAbout: about.trim(),
+      specializations,
+      areasServed,
+      languages,
+    };
+    const res = await onSubmit(payload);
+    setSubmitting(false);
+    if (res.success) onClose();
+    else setError(res.error || 'Something went wrong.');
+  };
+
+  const inputCls = 'w-full p-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs font-medium outline-none focus:bg-white focus:border-[#18A67D]';
+  const labelCls = 'block text-xs font-bold text-[#172033] uppercase';
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between border-b pb-3">
+          <div className="flex items-center gap-2 text-[#0F2A43] font-extrabold text-base">
+            <Pencil className="w-5 h-5 text-[#18A67D]" />
+            <span>Edit Agent — {target.name}</span>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {error && (
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
+            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Directory toggle */}
+          <label className="flex items-center justify-between gap-3 p-3 rounded-xl bg-teal-50 border border-teal-200 cursor-pointer">
+            <div className="flex items-center gap-2 text-teal-900">
+              <Award className="w-4 h-4 text-teal-600" />
+              <div>
+                <div className="text-xs font-extrabold">Feature as Rabnix Preferred Agent</div>
+                <div className="text-[10px] font-medium text-teal-700">Shows this agent on the public /agents directory & homepage.</div>
+              </div>
+            </div>
+            <input type="checkbox" checked={isPreferredAgent} onChange={(e) => setIsPreferredAgent(e.target.checked)} className="w-4 h-4 accent-[#18A67D]" />
+          </label>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className={labelCls}>Badge <span className="text-[#94A3B8] normal-case">(editorial)</span></label>
+              <input type="text" value={agentBadge} onChange={(e) => setAgentBadge(e.target.value)} placeholder="Rabnix Preferred" className={inputCls} />
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelCls}>Rating <span className="text-[#94A3B8] normal-case">(editorial)</span></label>
+              <input type="number" step="0.1" min="0" max="5" value={agentRating} onChange={(e) => setAgentRating(e.target.value)} placeholder="4.7" className={inputCls} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className={labelCls}>Agency Name</label>
+              <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="e.g. Prakash Realtors" className={inputCls} />
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelCls}>Agency Logo URL</label>
+              <input type="url" value={agencyLogo} onChange={(e) => setAgencyLogo(e.target.value)} placeholder="https://... (optional)" className={inputCls} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div className="space-y-1.5">
+              <label className={labelCls}>Since</label>
+              <input type="number" value={operatingSince} onChange={(e) => setOperatingSince(e.target.value)} placeholder="2015" className={inputCls} />
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelCls}>Exp (yrs)</label>
+              <input type="number" value={experienceYears} onChange={(e) => setExperienceYears(e.target.value)} placeholder="8" className={inputCls} />
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelCls}>Buyers Served</label>
+              <input type="text" value={buyersServed} onChange={(e) => setBuyersServed(e.target.value)} placeholder="120+" className={inputCls} />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className={labelCls}>RERA ID</label>
+            <input type="text" value={reraNumber} onChange={(e) => setReraNumber(e.target.value)} placeholder="UPRERAAGT... (optional)" className={inputCls} />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className={labelCls}>Specializations (comma-separated)</label>
+            <input type="text" value={specializations} onChange={(e) => setSpecializations(e.target.value)} placeholder="Residential, Luxury Villas, Plots" className={inputCls} />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className={labelCls}>Areas Served (comma-separated)</label>
+            <input type="text" value={areasServed} onChange={(e) => setAreasServed(e.target.value)} placeholder="Gomti Nagar, Hazratganj, Aliganj" className={inputCls} />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className={labelCls}>Languages (comma-separated)</label>
+            <input type="text" value={languages} onChange={(e) => setLanguages(e.target.value)} placeholder="Hindi, English" className={inputCls} />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className={labelCls}>About</label>
+            <textarea rows={3} value={about} onChange={(e) => setAbout(e.target.value)} placeholder="Short bio shown on the agent profile (optional)" className={`${inputCls} resize-none`} />
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-2 border-t">
+            <button type="button" onClick={onClose} className="px-4 py-2 rounded-xl border text-xs font-bold text-[#0F2A43] hover:bg-[#F8FAFC] cursor-pointer">
+              Cancel
+            </button>
+            <button type="submit" disabled={submitting} className="px-5 py-2 rounded-xl bg-[#0F2A43] hover:bg-[#163b5c] text-white text-xs font-bold shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-60">
+              {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+              <span>Save Changes</span>
             </button>
           </div>
         </form>

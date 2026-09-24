@@ -202,6 +202,18 @@ export interface UserProfile {
   shortlistedCount?: number;
   postedListingsCount?: number;
   totalInquiriesReceived?: number;
+  // Preferred Agent directory profile (only meaningful for role='agent').
+  isPreferredAgent?: boolean;
+  agencyLogo?: string;
+  agentBadge?: string;   // editorial, admin-set
+  agentRating?: number;  // editorial, admin-set
+  operatingSince?: number;
+  experienceYears?: number;
+  buyersServed?: string;
+  specializations?: string[];
+  areasServed?: string[];
+  languages?: string[];
+  agentAbout?: string;
 }
 
 export interface AiValuationResult {

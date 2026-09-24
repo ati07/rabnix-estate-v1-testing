@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser, hashPassword, toPublicProfile } from '@/lib/auth';
+import { csvToArray } from '@/lib/catalogHelpers';
 import type { UserRole } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -68,6 +69,33 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
       data.passwordHash = await hashPassword(body.password);
     }
+
+    // --- Preferred Agent curation (admin-managed) ---
+    // Editorial fields (isPreferredAgent, agentBadge, agentRating) are admin-only.
+    // The remaining marketing fields are also editable here, though agents can
+    // self-edit most of them from their dashboard.
+    if (typeof body.isPreferredAgent === 'boolean') {
+      data.isPreferredAgent = body.isPreferredAgent;
+      logs.push({
+        action: body.isPreferredAgent ? 'agent_promoted' : 'agent_demoted',
+        actorName: me.name, actorRole: 'Admin',
+        details: body.isPreferredAgent
+          ? `Promoted "${target.name}" (${target.email}) to the Preferred Agents directory.`
+          : `Removed "${target.name}" (${target.email}) from the Preferred Agents directory.`,
+        targetTitle: target.name, targetId: target.id,
+        severity: body.isPreferredAgent ? 'success' : 'warning',
+      });
+    }
+    if (typeof body.agentBadge === 'string') data.agentBadge = body.agentBadge.trim() || null;
+    if (body.agentRating !== undefined) data.agentRating = body.agentRating === '' || body.agentRating === null ? null : Number(body.agentRating);
+    if (typeof body.agencyLogo === 'string') data.agencyLogo = body.agencyLogo.trim() || null;
+    if (body.operatingSince !== undefined) data.operatingSince = body.operatingSince === '' || body.operatingSince === null ? null : Number(body.operatingSince);
+    if (body.experienceYears !== undefined) data.experienceYears = body.experienceYears === '' || body.experienceYears === null ? null : Number(body.experienceYears);
+    if (typeof body.buyersServed === 'string') data.buyersServed = body.buyersServed.trim() || null;
+    if (typeof body.agentAbout === 'string') data.agentAbout = body.agentAbout.trim() || null;
+    if (body.specializations !== undefined) data.specializations = csvToArray(body.specializations);
+    if (body.areasServed !== undefined) data.areasServed = csvToArray(body.areasServed);
+    if (body.languages !== undefined) data.languages = csvToArray(body.languages);
 
     const updated = await prisma.user.update({ where: { id }, data });
     if (logs.length) await prisma.activityLog.createMany({ data: logs });

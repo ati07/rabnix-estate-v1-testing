@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
+import type { User as DbUser } from '@prisma/client';
 import type { UserProfile, UserRole } from '@/lib/types';
 
 const COOKIE_NAME = 'rabnix_session';
@@ -71,13 +72,7 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
 }
 
 /** Strips passwordHash and shapes a DB user into the UserProfile the UI expects. */
-export function toPublicProfile(user: {
-  id: string; name: string; email: string; phone: string; role: string;
-  city: string | null; avatar: string | null; companyName: string | null;
-  reraNumber: string | null; isPhoneVerified: boolean; isEmailVerified: boolean;
-  isBlocked: boolean; blockedReason: string | null; blockedAt: string | null;
-  lastActive: string | null; createdAt: Date;
-}): UserProfile {
+export function toPublicProfile(user: DbUser): UserProfile {
   return {
     id: user.id,
     name: user.name,
@@ -95,5 +90,17 @@ export function toPublicProfile(user: {
     blockedAt: user.blockedAt ?? undefined,
     lastActive: user.lastActive ?? undefined,
     createdAt: user.createdAt.toISOString().split('T')[0],
+    // Preferred Agent directory profile.
+    isPreferredAgent: user.isPreferredAgent,
+    agencyLogo: user.agencyLogo ?? undefined,
+    agentBadge: user.agentBadge ?? undefined,
+    agentRating: user.agentRating ?? undefined,
+    operatingSince: user.operatingSince ?? undefined,
+    experienceYears: user.experienceYears ?? undefined,
+    buyersServed: user.buyersServed ?? undefined,
+    specializations: user.specializations,
+    areasServed: user.areasServed,
+    languages: user.languages,
+    agentAbout: user.agentAbout ?? undefined,
   };
 }

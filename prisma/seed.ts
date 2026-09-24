@@ -27,7 +27,6 @@ async function main() {
   await prisma.user.deleteMany();
   await prisma.builder.deleteMany();
   await prisma.featuredProject.deleteMany();
-  await prisma.agent.deleteMany();
   await prisma.collection.deleteMany();
 
   // --- Users ---
@@ -188,14 +187,48 @@ async function main() {
   }
   console.log(`Created ${projectCount} featured/top projects.`);
 
-  // --- Catalog: Preferred agents ---
+  // --- Preferred agents are now Users (role='agent', isPreferredAgent=true) ---
+  // Single source of truth: the directory profile + login account are one record.
+  // Listing counts (for sale / for rent) are computed live from their properties,
+  // so they are not stored here.
+  const agentPasswordHash = await bcrypt.hash('password123', 10);
+  let agentCount = 0;
   for (const a of HOME_PREFERRED_AGENTS) {
-    const { reviews, ...rest } = a;
-    await prisma.agent.create({
-      data: { ...rest, reviews: (reviews ?? undefined) as unknown as object | undefined },
+    const email = (a.email && a.email.trim())
+      ? a.email.toLowerCase().trim()
+      : `${a.id}@rabnix-agents.com`;
+    // Skip if this email collides with a demo account already created.
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) continue;
+    await prisma.user.create({
+      data: {
+        name: a.name,
+        email,
+        phone: a.phone,
+        passwordHash: agentPasswordHash,
+        role: 'agent',
+        city: a.city,
+        avatar: a.avatar,
+        companyName: a.agencyName,
+        reraNumber: a.reraId ?? undefined,
+        isPhoneVerified: true,
+        isEmailVerified: true,
+        isPreferredAgent: true,
+        agencyLogo: a.agencyLogo,
+        agentBadge: a.badge,
+        agentRating: a.rating,
+        operatingSince: a.operatingSince,
+        experienceYears: a.experienceYears ?? undefined,
+        buyersServed: a.buyersServed,
+        specializations: a.specializations ?? [],
+        areasServed: a.areasServed ?? [],
+        languages: a.languages ?? [],
+        agentAbout: a.about ?? undefined,
+      },
     });
+    agentCount++;
   }
-  console.log(`Created ${HOME_PREFERRED_AGENTS.length} agents.`);
+  console.log(`Created ${agentCount} preferred agent users.`);
 
   // --- Catalog: Curated collections ---
   for (const c of CURATED_COLLECTIONS) {

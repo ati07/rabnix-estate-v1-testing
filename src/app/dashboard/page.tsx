@@ -61,7 +61,8 @@ import {
   FileCheck,
   RefreshCw,
   Camera,
-  Loader2
+  Loader2,
+  Award
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -310,6 +311,17 @@ export default function UserDashboardPage() {
   const [showVerifiedBadge, setShowVerifiedBadge] = useState(true);
   const [appearanceSavedToast, setAppearanceSavedToast] = useState(false);
 
+  // Agent marketing profile (self-serve). Editorial fields — whether they are a
+  // Preferred Agent, their badge and rating — stay admin-controlled and are not here.
+  const [agentAgencyLogo, setAgentAgencyLogo] = useState(user?.agencyLogo || '');
+  const [agentOperatingSince, setAgentOperatingSince] = useState(typeof user?.operatingSince === 'number' ? String(user.operatingSince) : '');
+  const [agentExperienceYears, setAgentExperienceYears] = useState(typeof user?.experienceYears === 'number' ? String(user.experienceYears) : '');
+  const [agentBuyersServed, setAgentBuyersServed] = useState(user?.buyersServed || '');
+  const [agentAbout, setAgentAbout] = useState(user?.agentAbout || '');
+  const [agentSpecializations, setAgentSpecializations] = useState((user?.specializations || []).join(', '));
+  const [agentAreasServed, setAgentAreasServed] = useState((user?.areasServed || []).join(', '));
+  const [agentLanguages, setAgentLanguages] = useState((user?.languages || []).join(', '));
+
   // Avatar upload state
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -328,6 +340,14 @@ export default function UserDashboardPage() {
     setBrandPhone(user.phone || '');
     setBrandEmail(user.email || '');
     setBrandCity(user.city || '');
+    setAgentAgencyLogo(user.agencyLogo || '');
+    setAgentOperatingSince(typeof user.operatingSince === 'number' ? String(user.operatingSince) : '');
+    setAgentExperienceYears(typeof user.experienceYears === 'number' ? String(user.experienceYears) : '');
+    setAgentBuyersServed(user.buyersServed || '');
+    setAgentAbout(user.agentAbout || '');
+    setAgentSpecializations((user.specializations || []).join(', '));
+    setAgentAreasServed((user.areasServed || []).join(', '));
+    setAgentLanguages((user.languages || []).join(', '));
   }, [user?.id]);
 
   // Current user role
@@ -837,13 +857,27 @@ export default function UserDashboardPage() {
     e.preventDefault();
     // Email is the account identity and is not editable here (the profile API
     // ignores it), so it's intentionally left out of the update payload.
-    updateProfile({
+    const patch: Partial<UserProfile> = {
       name: brandName,
       companyName: brandCompany,
       reraNumber: brandRera,
       phone: brandPhone,
-      city: brandCity
-    });
+      city: brandCity,
+    };
+    // Agents can maintain their public directory profile. Editorial fields
+    // (Preferred status, badge, rating) are admin-only and excluded here.
+    if (currentRole === 'agent') {
+      const csv = (s: string) => s.split(',').map((x) => x.trim()).filter(Boolean);
+      patch.agencyLogo = agentAgencyLogo;
+      patch.operatingSince = agentOperatingSince.trim() ? Number(agentOperatingSince) : undefined;
+      patch.experienceYears = agentExperienceYears.trim() ? Number(agentExperienceYears) : undefined;
+      patch.buyersServed = agentBuyersServed;
+      patch.agentAbout = agentAbout;
+      patch.specializations = csv(agentSpecializations);
+      patch.areasServed = csv(agentAreasServed);
+      patch.languages = csv(agentLanguages);
+    }
+    updateProfile(patch);
     setAppearanceSavedToast(true);
     setTimeout(() => setAppearanceSavedToast(false), 3000);
   };
@@ -2364,6 +2398,108 @@ export default function UserDashboardPage() {
                       className="w-full text-xs font-semibold bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg p-2.5 outline-none focus:border-[#18A67D]"
                     />
                   </div>
+
+                  {/* Agent-only: public directory marketing profile */}
+                  {currentRole === 'agent' && (
+                    <div className="space-y-4 pt-4 mt-2 border-t border-[#E2E8F0]">
+                      <div className="flex items-start gap-2 text-[11px] font-medium text-[#64748B] bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-3">
+                        <Award className="w-4 h-4 text-[#18A67D] shrink-0 mt-0.5" />
+                        <span>
+                          This is your public <strong>Agent Directory</strong> profile. Your{' '}
+                          <strong>Preferred Agent</strong> status, badge and star rating are set by the Rabnix team.
+                          Your live listing counts are computed automatically from your approved properties.
+                        </span>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-[#172033]">Agency Logo URL</label>
+                        <input
+                          type="url"
+                          value={agentAgencyLogo}
+                          onChange={(e) => setAgentAgencyLogo(e.target.value)}
+                          placeholder="https://... (optional)"
+                          className="w-full text-xs font-semibold bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg p-2.5 outline-none focus:border-[#18A67D]"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-[#172033]">Operating Since</label>
+                          <input
+                            type="number"
+                            value={agentOperatingSince}
+                            onChange={(e) => setAgentOperatingSince(e.target.value)}
+                            placeholder="2015"
+                            className="w-full text-xs font-semibold bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg p-2.5 outline-none focus:border-[#18A67D]"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-[#172033]">Experience (yrs)</label>
+                          <input
+                            type="number"
+                            value={agentExperienceYears}
+                            onChange={(e) => setAgentExperienceYears(e.target.value)}
+                            placeholder="8"
+                            className="w-full text-xs font-semibold bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg p-2.5 outline-none focus:border-[#18A67D]"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-[#172033]">Buyers Served</label>
+                          <input
+                            type="text"
+                            value={agentBuyersServed}
+                            onChange={(e) => setAgentBuyersServed(e.target.value)}
+                            placeholder="120+"
+                            className="w-full text-xs font-semibold bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg p-2.5 outline-none focus:border-[#18A67D]"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-[#172033]">Specializations (comma-separated)</label>
+                        <input
+                          type="text"
+                          value={agentSpecializations}
+                          onChange={(e) => setAgentSpecializations(e.target.value)}
+                          placeholder="Residential, Luxury Villas, Plots"
+                          className="w-full text-xs font-semibold bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg p-2.5 outline-none focus:border-[#18A67D]"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-[#172033]">Areas Served (comma-separated)</label>
+                        <input
+                          type="text"
+                          value={agentAreasServed}
+                          onChange={(e) => setAgentAreasServed(e.target.value)}
+                          placeholder="Gomti Nagar, Hazratganj, Aliganj"
+                          className="w-full text-xs font-semibold bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg p-2.5 outline-none focus:border-[#18A67D]"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-[#172033]">Languages (comma-separated)</label>
+                        <input
+                          type="text"
+                          value={agentLanguages}
+                          onChange={(e) => setAgentLanguages(e.target.value)}
+                          placeholder="Hindi, English"
+                          className="w-full text-xs font-semibold bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg p-2.5 outline-none focus:border-[#18A67D]"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-[#172033]">About You</label>
+                        <textarea
+                          rows={3}
+                          value={agentAbout}
+                          onChange={(e) => setAgentAbout(e.target.value)}
+                          placeholder="Short bio shown on your public agent profile."
+                          className="w-full text-xs font-semibold bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg p-2.5 outline-none focus:border-[#18A67D] resize-none"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   {/* Brand Theme Accent Selector */}
                   <div className="space-y-2 pt-2">
