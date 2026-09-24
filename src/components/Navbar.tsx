@@ -229,17 +229,8 @@ export function Navbar({
               PG / Co-Living
             </button>
 
-            <button
-              id="nav-link-valuation"
-              onClick={onOpenAiValuation}
-              className="hidden 2xl:flex items-center gap-1.5 px-2.5 xl:px-3 py-1.5 rounded-lg whitespace-nowrap hover:text-[#18A67D] hover:bg-[#F8FAFC] transition-colors cursor-pointer"
-            >
-              <TrendingUp className="w-3.5 h-3.5 text-[#18A67D] shrink-0" />
-              <span>Price Trends</span>
-            </button>
-
-            {/* More Menu for screens between lg and 2xl */}
-            <div className="relative inline-block 2xl:hidden">
+            {/* More Menu (holds PG / Co-Living below xl, where it isn't a direct link) */}
+            <div className="relative inline-block xl:hidden">
               <button
                 id="nav-more-dropdown-trigger"
                 onClick={() => setActiveDropdown(activeDropdown === 'more' ? null : 'more')}
@@ -263,16 +254,6 @@ export function Navbar({
                   >
                     <Users className="w-4 h-4 text-[#18A67D]" />
                     <span>PG & Co-Living</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      onOpenAiValuation();
-                      setActiveDropdown(null);
-                    }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[#172033] hover:bg-[#F8FAFC] hover:text-[#18A67D] rounded-lg transition-colors cursor-pointer"
-                  >
-                    <TrendingUp className="w-4 h-4 text-[#18A67D]" />
-                    <span>AI Price Trends</span>
                   </button>
                 </div>
               )}
