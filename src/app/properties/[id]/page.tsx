@@ -46,13 +46,11 @@ export default function PropertyDetailsPage({ params }: { params: Promise<{ id: 
   // Active image gallery index
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
-  // Inquiry form states
-  const [inquiryName, setInquiryName] = useState(user?.name || '');
-  const [inquiryPhone, setInquiryPhone] = useState(user?.phone || '');
-  const [inquiryEmail, setInquiryEmail] = useState(user?.email || '');
-  const [inquiryMessage, setInquiryMessage] = useState(
-    `Hi, I am interested in "${property?.title}". Please share floor plan brochures and site visit availability.`
-  );
+  // Inquiry form states — start blank so the customer enters their own details.
+  const [inquiryName, setInquiryName] = useState('');
+  const [inquiryPhone, setInquiryPhone] = useState('');
+  const [inquiryEmail, setInquiryEmail] = useState('');
+  const [inquiryMessage, setInquiryMessage] = useState('');
   const [preferredVisitTime, setPreferredVisitTime] = useState('This Weekend (11:00 AM - 1:00 PM)');
   const [isInquirySubmitted, setIsInquirySubmitted] = useState(false);
   const [isSubmittingInquiry, setIsSubmittingInquiry] = useState(false);
@@ -530,18 +528,52 @@ export default function PropertyDetailsPage({ params }: { params: Promise<{ id: 
 
               {/* Inquiry Status or Form */}
               {isInquirySubmitted ? (
-                <div className="p-4 bg-[#E7F6F1] border border-[#18A67D]/30 rounded-xl text-center space-y-3 animate-in fade-in">
-                  <CheckCircle2 className="w-8 h-8 text-[#18A67D] mx-auto" />
-                  <div className="space-y-1">
-                    <h4 className="text-sm font-bold text-[#0E7C5D]">Inquiry Sent to Seller!</h4>
+                <div className="p-4 bg-[#E7F6F1] border border-[#18A67D]/30 rounded-xl space-y-3 animate-in fade-in">
+                  <div className="text-center space-y-1">
+                    <CheckCircle2 className="w-8 h-8 text-[#18A67D] mx-auto" />
+                    <h4 className="text-sm font-bold text-[#0E7C5D]">Inquiry Sent!</h4>
                     <p className="text-xs text-[#64748B]">
-                      The property owner has received your contact request and will connect shortly on WhatsApp & Call.
+                      Your request has been shared with the seller and our team. Here are the seller&apos;s contact details:
                     </p>
                   </div>
+
+                  {/* Revealed seller contact details */}
+                  <div className="bg-white rounded-xl border border-[#E2E8F0] p-3 space-y-2 text-left">
+                    <div>
+                      <div className="text-sm font-bold text-[#0F2A43]">{property.postedBy.name}</div>
+                      <div className="text-[11px] font-semibold text-[#18A67D]">
+                        {property.postedBy.type}
+                        {property.postedBy.companyName ? ` · ${property.postedBy.companyName}` : ''}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs font-semibold text-[#0F2A43]">
+                      <Phone className="w-3.5 h-3.5 text-[#18A67D]" />
+                      <a href={`tel:${property.postedBy.phone}`} className="hover:underline">{property.postedBy.phone}</a>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <a
+                        href={`tel:${property.postedBy.phone}`}
+                        className="py-2 px-3 bg-[#0F2A43] hover:bg-[#163b5c] text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-colors"
+                      >
+                        <Phone className="w-3.5 h-3.5" />
+                        <span>Call</span>
+                      </a>
+                      <a
+                        href={`https://wa.me/${property.postedBy.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Hi, I am interested in ${property.title}`)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="py-2 px-3 bg-[#25D366] hover:bg-[#1ebd59] text-white text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition-colors"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span>WhatsApp</span>
+                      </a>
+                    </div>
+                  </div>
+
                   <button
                     type="button"
                     onClick={() => setIsInquirySubmitted(false)}
-                    className="text-xs font-bold text-[#0F2A43] underline cursor-pointer"
+                    className="w-full text-xs font-bold text-[#0F2A43] underline cursor-pointer"
                   >
                     Send another inquiry
                   </button>
@@ -592,6 +624,7 @@ export default function PropertyDetailsPage({ params }: { params: Promise<{ id: 
                       rows={2}
                       value={inquiryMessage}
                       onChange={(e) => setInquiryMessage(e.target.value)}
+                      placeholder="e.g. Please share the floor plan and site-visit availability."
                       className="w-full p-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs outline-none"
                     />
                   </div>
@@ -617,26 +650,6 @@ export default function PropertyDetailsPage({ params }: { params: Promise<{ id: 
                   </div>
                 </form>
               )}
-
-              {/* Direct Call / WhatsApp Fast Action */}
-              <div className="pt-2 border-t border-[#E2E8F0] grid grid-cols-2 gap-2">
-                <a
-                  href={`tel:${property.postedBy.phone}`}
-                  className="py-2.5 px-3 bg-[#0F2A43] hover:bg-[#163b5c] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors"
-                >
-                  <Phone className="w-3.5 h-3.5" />
-                  <span>Call Seller</span>
-                </a>
-                <a
-                  href={`https://wa.me/919876543210?text=Hi, I am interested in ${encodeURIComponent(property.title)}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="py-2.5 px-3 bg-[#25D366] hover:bg-[#1ebd59] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-colors"
-                >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  <span>WhatsApp</span>
-                </a>
-              </div>
 
             </div>
 
