@@ -431,7 +431,7 @@ export default function AdminPortalPage() {
               <div className="text-[10px] text-slate-300 truncate">{user?.email || 'admin@rabnixestate.in'}</div>
               <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider bg-[#18A67D]/20 text-[#22C39A] border border-[#18A67D]/30">
                 <ShieldCheck className="w-2.5 h-2.5" />
-                SUPER ADMIN
+                ADMIN
               </span>
             </div>
           </div>
