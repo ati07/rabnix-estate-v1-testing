@@ -56,7 +56,7 @@ These are enforced in the API, not just the UI, so they can't be bypassed:
 
 ```
 1. Owner signs up / logs in            → POST /api/auth/register|login  (session cookie)
-2. Owner uploads photos                → POST /api/upload               (→ /uploads/*.png)
+2. Owner uploads photos                → POST /api/upload               (→ Vercel Blob URLs)
 3. Owner submits a listing             → POST /api/properties           (forced: pending)
       → hidden from the public home page
 4. Admin logs in, sees it under review → GET /api/properties?scope=all

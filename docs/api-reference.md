@@ -34,7 +34,7 @@ Legend: 🔓 public · 🔑 any signed-in user · 👑 admin only · 🧍 resour
 
 | Method | Path | Access | Description |
 |--------|------|--------|-------------|
-| POST | `/api/upload` | 🔑 | `multipart/form-data`, field name `files` (one or many). Validates image MIME types, max **5 MB** each, writes to `public/uploads/`, and returns `{ urls: ["/uploads/…"] }`. |
+| POST | `/api/upload` | 🔑 | `multipart/form-data`, field name `files` (one or many). Validates image MIME types, max **5 MB** each, uploads to **Vercel Blob** (public access), and returns `{ success, urls: ["https://…public.blob.vercel-storage.com/…"] }`. Requires `BLOB_READ_WRITE_TOKEN`. |
 
 ## Users — `/api/users` (admin)
 
