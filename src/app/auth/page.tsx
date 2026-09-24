@@ -24,9 +24,9 @@ function AuthPageContent() {
   const { isAuthenticated } = useAuth();
   const initialMode = searchParams?.get('mode') === 'signup' ? 'signup' : 'signin';
 
-  // Once signed in, leave the auth page for the home dashboard.
+  // Once signed in, send the user straight to their dashboard.
   useEffect(() => {
-    if (isAuthenticated) router.replace('/');
+    if (isAuthenticated) router.replace('/dashboard');
   }, [isAuthenticated, router]);
 
   return (
@@ -132,7 +132,7 @@ function AuthPageContent() {
           {/* Right Column: Interactive Sign In / Sign Up Form */}
           <div className="lg:col-span-6 flex justify-center">
             <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-[#E2E8F0] overflow-hidden">
-              <AuthForm initialMode={initialMode} onSuccess={() => router.replace('/')} />
+              <AuthForm initialMode={initialMode} onSuccess={() => router.replace('/dashboard')} />
             </div>
           </div>
 

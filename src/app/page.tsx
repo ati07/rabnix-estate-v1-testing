@@ -421,6 +421,10 @@ export default function HomeView() {
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={() => {
+          setIsAuthModalOpen(false);
+          router.push('/dashboard');
+        }}
         initialMode={authModalMode}
       />
 

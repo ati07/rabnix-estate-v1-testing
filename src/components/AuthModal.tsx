@@ -7,10 +7,11 @@ import { AuthForm } from './AuthForm';
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
   initialMode?: 'signin' | 'signup';
 }
 
-export function AuthModal({ isOpen, onClose, initialMode = 'signin' }: AuthModalProps) {
+export function AuthModal({ isOpen, onClose, onSuccess, initialMode = 'signin' }: AuthModalProps) {
   if (!isOpen) return null;
 
   return (
@@ -42,10 +43,10 @@ export function AuthModal({ isOpen, onClose, initialMode = 'signin' }: AuthModal
 
         {/* Modal Body with AuthForm */}
         <div className="max-h-[85vh] overflow-y-auto">
-          <AuthForm 
-            initialMode={initialMode} 
-            onSuccess={onClose} 
-            isModal={true} 
+          <AuthForm
+            initialMode={initialMode}
+            onSuccess={onSuccess || onClose}
+            isModal={true}
           />
         </div>
       </div>
