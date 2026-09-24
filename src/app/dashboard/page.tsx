@@ -438,14 +438,12 @@ export default function UserDashboardPage() {
 
   // User posted properties
   const myPostedProperties = useMemo(() => {
-    return properties.filter((p) => {
-      if (user?.id && p.postedByUserId === user.id) return true;
-      if (currentRole === 'owner' && p.postedBy.type === 'Owner') return true;
-      if (currentRole === 'agent' && p.postedBy.type === 'Verified Agent') return true;
-      if (currentRole === 'builder' && p.postedBy.type === 'Builder') return true;
-      return false;
-    });
-  }, [properties, user, currentRole]);
+    // Strictly the listings this account owns. (Previously fell back to matching
+    // by postedBy.type, which made every new agent/owner/builder "see" all the
+    // seeded demo listings of that type.)
+    if (!user?.id) return [];
+    return properties.filter((p) => p.postedByUserId === user.id);
+  }, [properties, user]);
 
   // Filtered listings
   const filteredListings = useMemo(() => {
