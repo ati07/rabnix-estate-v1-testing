@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -22,7 +22,8 @@ import {
   Plus,
   Trash2,
   Key,
-  Compass
+  Compass,
+  Loader2
 } from 'lucide-react';
 import { useAuth } from '@/lib/authContext';
 import { useProperties } from '@/lib/propertyContext';
@@ -92,7 +93,10 @@ export default function PostPropertyPage() {
     SAMPLE_PHOTO_PRESETS[1]
   ]);
   const [customImageUrl, setCustomImageUrl] = useState<string>('');
-  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
   // Verification documents checkboxes
   const [hasEncumbranceCert, setHasEncumbranceCert] = useState(true);
   const [hasFloorPlanDoc, setHasFloorPlanDoc] = useState(true);
@@ -122,6 +126,29 @@ export default function PostPropertyPage() {
     if (customImageUrl.trim()) {
       setImages([...images, customImageUrl.trim()]);
       setCustomImageUrl('');
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploadError(null);
+    setIsUploading(true);
+    try {
+      const form = new FormData();
+      Array.from(files).forEach((f) => form.append('files', f));
+      const res = await fetch('/api/upload', { method: 'POST', body: form, credentials: 'same-origin' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success && Array.isArray(data.urls)) {
+        setImages((prev) => [...prev, ...data.urls]);
+      } else {
+        setUploadError(data.error || 'Upload failed. Please try again.');
+      }
+    } catch {
+      setUploadError('Upload failed. Please try again.');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -825,13 +852,45 @@ export default function PostPropertyPage() {
                       ))}
                     </div>
 
+                    {/* Upload from device */}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/avif,image/gif"
+                      multiple
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-[#CBD5E1] hover:border-[#18A67D] hover:bg-[#E7F6F1] rounded-xl text-xs sm:text-sm font-bold text-[#0F2A43] transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Uploading…</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4" />
+                          <span>Upload photos from your device</span>
+                        </>
+                      )}
+                    </button>
+                    <span className="block text-[11px] text-[#64748B]">JPG, PNG, WEBP, AVIF or GIF · up to 5 MB each</span>
+                    {uploadError && (
+                      <p className="text-xs text-red-600 font-medium">{uploadError}</p>
+                    )}
+
                     {/* Custom URL add */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 pt-1">
                       <input
                         type="url"
                         value={customImageUrl}
                         onChange={(e) => setCustomImageUrl(e.target.value)}
-                        placeholder="Paste image URL (https://...)"
+                        placeholder="Or paste image URL (https://...)"
                         className="flex-1 p-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs sm:text-sm outline-none"
                       />
                       <button
