@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -59,7 +59,9 @@ import {
   Users,
   Ban,
   FileCheck,
-  RefreshCw
+  RefreshCw,
+  Camera,
+  Loader2
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 
@@ -242,15 +244,31 @@ export default function UserDashboardPage() {
   const [uploadSuccessId, setUploadSuccessId] = useState<string | null>(null);
 
   // Appearance & Branding Form States
-  const [brandName, setBrandName] = useState(user?.name || 'Rahul Sharma');
-  const [brandCompany, setBrandCompany] = useState(user?.companyName || 'Prime Realty Partners');
-  const [brandRera, setBrandRera] = useState(user?.reraNumber || 'PRM/KA/RERA/1251/310/AG/210412/00189');
-  const [brandPhone, setBrandPhone] = useState(user?.phone || '+91 98765 43210');
-  const [brandEmail, setBrandEmail] = useState(user?.email || 'rahul.sharma@example.com');
-  const [brandCity, setBrandCity] = useState(user?.city || 'Bangalore');
+  const [brandName, setBrandName] = useState(user?.name || '');
+  const [brandCompany, setBrandCompany] = useState(user?.companyName || '');
+  const [brandRera, setBrandRera] = useState(user?.reraNumber || '');
+  const [brandPhone, setBrandPhone] = useState(user?.phone || '');
+  const [brandEmail, setBrandEmail] = useState(user?.email || '');
+  const [brandCity, setBrandCity] = useState(user?.city || '');
   const [brandThemeColor, setBrandThemeColor] = useState<string>('emerald');
   const [showVerifiedBadge, setShowVerifiedBadge] = useState(true);
   const [appearanceSavedToast, setAppearanceSavedToast] = useState(false);
+
+  // Avatar upload state
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+
+  // Sync the profile form with the authenticated user once it loads (or changes).
+  useEffect(() => {
+    if (!user) return;
+    setBrandName(user.name || '');
+    setBrandCompany(user.companyName || '');
+    setBrandRera(user.reraNumber || '');
+    setBrandPhone(user.phone || '');
+    setBrandEmail(user.email || '');
+    setBrandCity(user.city || '');
+  }, [user?.id]);
 
   // Current user role
   const currentRole: UserRole = user?.role || 'owner';
@@ -642,16 +660,40 @@ export default function UserDashboardPage() {
 
   const handleSaveAppearance = (e: React.FormEvent) => {
     e.preventDefault();
+    // Email is the account identity and is not editable here (the profile API
+    // ignores it), so it's intentionally left out of the update payload.
     updateProfile({
       name: brandName,
       companyName: brandCompany,
       reraNumber: brandRera,
       phone: brandPhone,
-      email: brandEmail,
       city: brandCity
     });
     setAppearanceSavedToast(true);
     setTimeout(() => setAppearanceSavedToast(false), 3000);
+  };
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarError(null);
+    setAvatarUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('files', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: fd, credentials: 'same-origin' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success && data.urls?.[0]) {
+        updateProfile({ avatar: data.urls[0] });
+      } else {
+        setAvatarError(data.error || 'Upload failed. Please try again.');
+      }
+    } catch {
+      setAvatarError('Upload failed. Please try again.');
+    } finally {
+      setAvatarUploading(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
   };
 
   // If user is not authenticated, show sign-in gatekeeper with 1-click test logins
@@ -1956,6 +1998,55 @@ export default function UserDashboardPage() {
                 </div>
               )}
 
+              {/* Profile Photo Upload */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0]">
+                <div className="relative w-20 h-20 shrink-0">
+                  <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-[#18A67D] relative bg-white">
+                    <Image
+                      src={user?.avatar || DEMO_USERS[currentRole]?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
+                      alt={brandName || 'Profile photo'}
+                      fill
+                      className="object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                  {avatarUploading && (
+                    <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center">
+                      <Loader2 className="w-6 h-6 text-white animate-spin" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="text-sm font-extrabold text-[#0F2A43]">Profile Photo</div>
+                  <p className="text-[11px] text-[#64748B]">JPG, PNG, WEBP or GIF up to 5MB. Shown to buyers on your listings.</p>
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => avatarInputRef.current?.click()}
+                      disabled={avatarUploading}
+                      className="px-3 py-1.5 bg-[#0F2A43] hover:bg-[#163b5c] text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                      <span>{avatarUploading ? 'Uploading…' : (user?.avatar ? 'Change Photo' : 'Upload Photo')}</span>
+                    </button>
+                    <input
+                      ref={avatarInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/avif,image/gif"
+                      onChange={handleAvatarUpload}
+                      className="hidden"
+                    />
+                  </div>
+                  {avatarError && (
+                    <p className="text-[11px] text-rose-600 font-semibold flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      {avatarError}
+                    </p>
+                  )}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
                 {/* Form Inputs */}
@@ -1995,12 +2086,13 @@ export default function UserDashboardPage() {
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#172033]">Public Email</label>
+                      <label className="text-xs font-bold text-[#172033]">Account Email (read-only)</label>
                       <input
                         type="email"
                         value={brandEmail}
-                        onChange={(e) => setBrandEmail(e.target.value)}
-                        className="w-full text-xs font-semibold bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg p-2.5 outline-none focus:border-[#18A67D]"
+                        readOnly
+                        title="Email is your account identity and can't be changed here."
+                        className="w-full text-xs font-semibold bg-slate-100 border border-[#CBD5E1] rounded-lg p-2.5 outline-none text-slate-500 cursor-not-allowed"
                       />
                     </div>
                   </div>
