@@ -2,6 +2,9 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { INITIAL_PROPERTIES } from '../src/lib/realEstateData';
 import type { Property } from '../src/lib/types';
+import { BUILDERS_DATA } from '../src/lib/buildersData';
+import { HOME_FEATURED_PROJECTS, HOME_TOP_PROJECTS, HOME_PREFERRED_AGENTS } from '../src/lib/homeSectionsData';
+import { CURATED_COLLECTIONS } from '../src/lib/collectionsData';
 
 const prisma = new PrismaClient();
 
@@ -22,6 +25,10 @@ async function main() {
   await prisma.activityLog.deleteMany();
   await prisma.property.deleteMany();
   await prisma.user.deleteMany();
+  await prisma.builder.deleteMany();
+  await prisma.featuredProject.deleteMany();
+  await prisma.agent.deleteMany();
+  await prisma.collection.deleteMany();
 
   // --- Users ---
   const userIdByKey: Record<string, string> = {};
@@ -147,6 +154,61 @@ async function main() {
       { action: 'user_registered', actorName: 'Rahul Sharma', actorRole: 'Buyer', details: 'New buyer account registered in Bangalore.', severity: 'info' },
     ],
   });
+
+  // --- Catalog: Builders ---
+  for (const b of BUILDERS_DATA) {
+    const { projects, ...scalars } = b;
+    await prisma.builder.create({
+      data: { ...scalars, projects: projects as unknown as object },
+    });
+  }
+  console.log(`Created ${BUILDERS_DATA.length} builders.`);
+
+  // --- Catalog: Featured / Top projects (dedupe shared ids, keep first section) ---
+  const seenProjectIds = new Set<string>();
+  let projectCount = 0;
+  for (const [section, list] of [
+    ['featured', HOME_FEATURED_PROJECTS] as const,
+    ['top', HOME_TOP_PROJECTS] as const,
+  ]) {
+    for (const p of list) {
+      if (seenProjectIds.has(p.id)) continue;
+      seenProjectIds.add(p.id);
+      const { floorPlans, nearbyLandmarks, ...rest } = p;
+      await prisma.featuredProject.create({
+        data: {
+          ...rest,
+          section,
+          floorPlans: (floorPlans ?? undefined) as unknown as object | undefined,
+          nearbyLandmarks: (nearbyLandmarks ?? undefined) as unknown as object | undefined,
+        },
+      });
+      projectCount++;
+    }
+  }
+  console.log(`Created ${projectCount} featured/top projects.`);
+
+  // --- Catalog: Preferred agents ---
+  for (const a of HOME_PREFERRED_AGENTS) {
+    const { reviews, ...rest } = a;
+    await prisma.agent.create({
+      data: { ...rest, reviews: (reviews ?? undefined) as unknown as object | undefined },
+    });
+  }
+  console.log(`Created ${HOME_PREFERRED_AGENTS.length} agents.`);
+
+  // --- Catalog: Curated collections ---
+  for (const c of CURATED_COLLECTIONS) {
+    await prisma.collection.create({
+      data: {
+        ...c,
+        keyHighlights: c.keyHighlights as unknown as object,
+        filters: c.filters as unknown as object,
+        faqs: c.faqs as unknown as object,
+      },
+    });
+  }
+  console.log(`Created ${CURATED_COLLECTIONS.length} collections.`);
 
   console.log('Seed complete.');
   console.log('\nLogin credentials:');

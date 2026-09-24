@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, use } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -40,7 +40,16 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
   const router = useRouter();
   const { user } = useAuth();
 
-  const project = getProjectById(projectId) || getAllProjects()[0];
+  // Seed from static data for instant paint, then hydrate from the live API.
+  const [project, setProject] = useState(() => getProjectById(projectId) || getAllProjects()[0]);
+  useEffect(() => {
+    let active = true;
+    fetch(`/api/projects/${projectId}`)
+      .then((r) => r.json())
+      .then((d) => { if (active && d?.success && d.project) setProject(d.project); })
+      .catch(() => { /* keep static fallback */ });
+    return () => { active = false; };
+  }, [projectId]);
 
   // Active gallery image
   const [activeImageIndex, setActiveImageIndex] = useState(0);

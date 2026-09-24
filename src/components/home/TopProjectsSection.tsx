@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, ChevronLeft, ChevronRight, MapPin, Sparkles, ShieldCheck } from 'lucide-react';
@@ -18,15 +18,26 @@ export function TopProjectsSection({
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Live top projects from the API; seed with static data for first paint + offline.
+  const [allProjects, setAllProjects] = useState<FeaturedProjectItem[]>(HOME_TOP_PROJECTS);
+  useEffect(() => {
+    let active = true;
+    fetch('/api/projects?section=top')
+      .then((r) => r.json())
+      .then((d) => { if (active && d?.success && Array.isArray(d.projects) && d.projects.length) setAllProjects(d.projects); })
+      .catch(() => { /* keep static fallback */ });
+    return () => { active = false; };
+  }, []);
+
   // Filter projects by active city or fallback
   const projects = React.useMemo(() => {
-    const citySpecific = HOME_TOP_PROJECTS.filter(
+    const citySpecific = allProjects.filter(
       (p) => p.city.toLowerCase() === cityName.toLowerCase()
     );
     if (citySpecific.length >= 1) return citySpecific;
 
-    return HOME_TOP_PROJECTS;
-  }, [cityName]);
+    return allProjects;
+  }, [allProjects, cityName]);
 
   const handleScroll = (direction: 'left' | 'right') => {
     if (!scrollRef.current) return;

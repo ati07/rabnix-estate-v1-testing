@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ExternalLink, Star, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
@@ -20,8 +20,18 @@ export function ExplorePopularLocalitiesSection({
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const localities = React.useMemo(() => {
-    return getPopularLocalitiesForCity(cityName, popularLocalities);
+  // Static tiles for instant paint; the API overlays live approved-listing counts per locality.
+  const [localities, setLocalities] = useState<PopularLocalityCardItem[]>(
+    () => getPopularLocalitiesForCity(cityName, popularLocalities)
+  );
+  useEffect(() => {
+    let active = true;
+    setLocalities(getPopularLocalitiesForCity(cityName, popularLocalities));
+    fetch(`/api/localities?city=${encodeURIComponent(cityName)}`)
+      .then((r) => r.json())
+      .then((d) => { if (active && d?.success && Array.isArray(d.localities) && d.localities.length) setLocalities(d.localities); })
+      .catch(() => { /* keep static fallback */ });
+    return () => { active = false; };
   }, [cityName, popularLocalities]);
 
   const handleScroll = (direction: 'left' | 'right') => {

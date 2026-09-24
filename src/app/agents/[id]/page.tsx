@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, use } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -28,8 +28,10 @@ import {
   CheckCircle
 } from 'lucide-react';
 import { getAgentById, getAgentProperties, HOME_PREFERRED_AGENTS } from '@/lib/homeSectionsData';
+import type { PreferredAgentItem } from '@/lib/homeSectionsData';
 import { useProperties } from '@/lib/propertyContext';
 import { useAuth } from '@/lib/authContext';
+import type { Property } from '@/lib/types';
 
 export default function AgentDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -38,8 +40,26 @@ export default function AgentDetailsPage({ params }: { params: Promise<{ id: str
   const { user } = useAuth();
   const { properties } = useProperties();
 
-  const agent = getAgentById(agentId) || HOME_PREFERRED_AGENTS[0];
-  const agentProperties = agent ? getAgentProperties(agent, properties) : [];
+  // Seed from static data, then hydrate agent + their live listings from the API.
+  const [agent, setAgent] = useState<PreferredAgentItem>(
+    () => getAgentById(agentId) || HOME_PREFERRED_AGENTS[0]
+  );
+  const [liveAgentProperties, setLiveAgentProperties] = useState<Property[] | null>(null);
+  useEffect(() => {
+    let active = true;
+    fetch(`/api/agents/${agentId}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!active || !d?.success) return;
+        if (d.agent) setAgent(d.agent);
+        if (Array.isArray(d.properties)) setLiveAgentProperties(d.properties);
+      })
+      .catch(() => { /* keep static fallback */ });
+    return () => { active = false; };
+  }, [agentId]);
+
+  // Prefer the API's live-attributed listings; fall back to context-derived ones.
+  const agentProperties = liveAgentProperties ?? (agent ? getAgentProperties(agent, properties) : []);
 
   // Filter tab for agent properties (all, buy, rent)
   const [propertyFilter, setPropertyFilter] = useState<'all' | 'buy' | 'rent'>('all');

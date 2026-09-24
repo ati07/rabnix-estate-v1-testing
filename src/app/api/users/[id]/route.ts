@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCurrentUser, toPublicProfile } from '@/lib/auth';
+import { getCurrentUser, hashPassword, toPublicProfile } from '@/lib/auth';
 import type { UserRole } from '@/lib/types';
 
 export const runtime = 'nodejs';
@@ -40,6 +40,33 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     if (body.role && VALID_ROLES.includes(body.role)) {
       data.role = body.role;
+    }
+
+    // Editable profile fields (admin-managed).
+    if (typeof body.name === 'string' && body.name.trim()) {
+      data.name = body.name.trim();
+    }
+    if (typeof body.email === 'string' && body.email.trim()) {
+      const normalizedEmail = body.email.toLowerCase().trim();
+      if (normalizedEmail !== target.email) {
+        const clash = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+        if (clash) {
+          return NextResponse.json({ success: false, error: 'Another account already uses this email.' }, { status: 409 });
+        }
+        data.email = normalizedEmail;
+      }
+    }
+    if (typeof body.phone === 'string' && body.phone.trim()) {
+      data.phone = body.phone.startsWith('+91') ? body.phone.trim() : `+91 ${body.phone.trim()}`;
+    }
+    if (typeof body.city === 'string') data.city = body.city.trim() || null;
+    if (typeof body.companyName === 'string') data.companyName = body.companyName.trim() || null;
+    if (typeof body.reraNumber === 'string') data.reraNumber = body.reraNumber.trim() || null;
+    if (typeof body.password === 'string' && body.password) {
+      if (body.password.length < 6) {
+        return NextResponse.json({ success: false, error: 'Password must be at least 6 characters.' }, { status: 400 });
+      }
+      data.passwordHash = await hashPassword(body.password);
     }
 
     const updated = await prisma.user.update({ where: { id }, data });

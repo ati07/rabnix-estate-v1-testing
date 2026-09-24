@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, ChevronLeft, ChevronRight, Award, ShieldCheck, PhoneCall } from 'lucide-react';
@@ -18,18 +18,29 @@ export function PreferredAgentsSection({
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Live preferred agents from the API; seed with static data for first paint + offline.
+  const [allAgents, setAllAgents] = useState<PreferredAgentItem[]>(HOME_PREFERRED_AGENTS);
+  useEffect(() => {
+    let active = true;
+    fetch('/api/agents')
+      .then((r) => r.json())
+      .then((d) => { if (active && d?.success && Array.isArray(d.agents) && d.agents.length) setAllAgents(d.agents); })
+      .catch(() => { /* keep static fallback */ });
+    return () => { active = false; };
+  }, []);
+
   // Filter agents by city or fallback to show full team
   const agents = React.useMemo(() => {
-    const citySpecific = HOME_PREFERRED_AGENTS.filter(
+    const citySpecific = allAgents.filter(
       (a) => a.city.toLowerCase() === cityName.toLowerCase()
     );
     if (citySpecific.length >= 3) return citySpecific;
 
-    const others = HOME_PREFERRED_AGENTS.filter(
+    const others = allAgents.filter(
       (a) => a.city.toLowerCase() !== cityName.toLowerCase()
     );
     return [...citySpecific, ...others];
-  }, [cityName]);
+  }, [allAgents, cityName]);
 
   const handleScroll = (direction: 'left' | 'right') => {
     if (!scrollRef.current) return;

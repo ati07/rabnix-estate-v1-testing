@@ -304,3 +304,7 @@ export const CURATED_COLLECTIONS: CuratedCollection[] = [
     ]
   }
 ];
+
+export function getCollectionById(id: string): CuratedCollection | undefined {
+  return CURATED_COLLECTIONS.find((c) => c.id === id);
+}

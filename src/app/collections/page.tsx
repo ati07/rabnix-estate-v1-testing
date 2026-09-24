@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, Suspense } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
@@ -45,16 +45,27 @@ function CollectionsHubContent() {
 
   const { properties } = useProperties();
 
+  // Live collections from the API; seed with static data for first paint + offline.
+  const [collections, setCollections] = useState<CuratedCollection[]>(CURATED_COLLECTIONS);
+  useEffect(() => {
+    let active = true;
+    fetch('/api/collections')
+      .then((r) => r.json())
+      .then((d) => { if (active && d?.success && Array.isArray(d.collections)) setCollections(d.collections); })
+      .catch(() => { /* keep static fallback */ });
+    return () => { active = false; };
+  }, []);
+
   // All distinct tags
   const allTags = useMemo(() => {
     const tags = new Set<string>();
-    CURATED_COLLECTIONS.forEach((c) => tags.add(c.tag));
+    collections.forEach((c) => tags.add(c.tag));
     return ['All', ...Array.from(tags)];
-  }, []);
+  }, [collections]);
 
   // Filter collections
   const filteredCollections = useMemo(() => {
-    return CURATED_COLLECTIONS.filter((c) => {
+    return collections.filter((c) => {
       // City filter
       if (selectedCity !== 'All' && !c.recommendedCities.includes(selectedCity)) {
         return false;
@@ -75,7 +86,7 @@ function CollectionsHubContent() {
       }
       return true;
     });
-  }, [selectedCity, selectedTag, searchQuery]);
+  }, [collections, selectedCity, selectedTag, searchQuery]);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-between">
@@ -148,7 +159,7 @@ function CollectionsHubContent() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/15 text-xs">
               <div>
                 <span className="text-slate-400 block text-[10px] uppercase font-bold">Collections</span>
-                <span className="text-lg font-black text-white">{CURATED_COLLECTIONS.length} Portfolios</span>
+                <span className="text-lg font-black text-white">{collections.length} Portfolios</span>
               </div>
               <div>
                 <span className="text-slate-400 block text-[10px] uppercase font-bold">Total Listings</span>

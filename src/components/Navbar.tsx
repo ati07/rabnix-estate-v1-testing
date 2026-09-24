@@ -203,19 +203,19 @@ export function Navbar({
               Plots / Land
             </button>
 
-            <Link
+            {/* <Link
               href="/collections"
               className="px-2.5 xl:px-3 py-1.5 rounded-lg whitespace-nowrap hover:text-[#18A67D] hover:bg-[#F8FAFC] transition-colors font-semibold"
             >
               Collections
-            </Link>
+            </Link> */}
 
-            <Link
+            {/* <Link
               href="/builders"
               className="px-2.5 xl:px-3 py-1.5 rounded-lg whitespace-nowrap hover:text-[#18A67D] hover:bg-[#F8FAFC] transition-colors font-semibold"
             >
               Builders & Projects
-            </Link>
+            </Link> */}
 
             <button
               id="nav-link-pg"

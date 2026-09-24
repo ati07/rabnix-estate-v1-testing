@@ -12,19 +12,10 @@ export const DEMO_USERS: Record<UserRole, { name: string; avatar: string }> = {
   admin:   { name: 'Rabnix Master Admin', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80' },
 };
 
-// Demo login credentials (seeded in the database via prisma/seed.ts).
-// Used by the "Quick Demo Login" buttons.
-const DEMO_CREDENTIALS: Record<UserRole, { email: string; password: string }> = {
-  admin:   { email: 'admin@rabnixestate.com', password: 'admin123' },
-  owner:   { email: 'owner@rabnix.com',       password: 'password123' },
-  buyer:   { email: 'buyer@rabnix.com',       password: 'password123' },
-  agent:   { email: 'agent@rabnix.com',       password: 'password123' },
-  builder: { email: 'builder@rabnix.com',     password: 'password123' },
-};
-
 interface AuthContextType {
   user: UserProfile | null;
   isAuthenticated: boolean;
+  isAuthReady: boolean;
   isLoading: boolean;
   users: UserProfile[];
   activityLogs: SystemActivityLog[];
@@ -41,11 +32,33 @@ interface AuthContextType {
     password?: string;
   }) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
-  quickDemoLogin: (role: UserRole) => Promise<{ success: boolean; error?: string }>;
   updateProfile: (data: Partial<UserProfile>) => void;
   toggleBlockUser: (userId: string, reason?: string) => void;
   deleteUser: (userId: string) => void;
   updateUserRole: (userId: string, role: UserRole) => void;
+  createUser: (data: {
+    name: string;
+    email: string;
+    phone: string;
+    password: string;
+    role: UserRole;
+    city?: string;
+    companyName?: string;
+    reraNumber?: string;
+  }) => Promise<{ success: boolean; error?: string }>;
+  updateUser: (
+    userId: string,
+    data: Partial<{
+      name: string;
+      email: string;
+      phone: string;
+      role: UserRole;
+      city: string;
+      companyName: string;
+      reraNumber: string;
+      password: string;
+    }>
+  ) => Promise<{ success: boolean; error?: string }>;
   logActivity: (log: Omit<SystemActivityLog, 'id' | 'timestamp'>) => void;
   clearActivityLogs: () => void;
 }
@@ -67,6 +80,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [activityLogs, setActivityLogs] = useState<SystemActivityLog[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  // False until the initial session check resolves — lets guards distinguish
+  // "still loading" from "definitely not signed in".
+  const [isAuthReady, setIsAuthReady] = useState(false);
 
   // Load current session on mount.
   useEffect(() => {
@@ -74,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       const { data } = await api('/api/auth/me');
       if (active && data?.user) setUser(data.user);
+      if (active) setIsAuthReady(true);
     })();
     return () => { active = false; };
   }, []);
@@ -136,12 +153,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     api('/api/auth/logout', { method: 'POST' });
   };
 
-  const quickDemoLogin = async (role: UserRole) => {
-    const creds = DEMO_CREDENTIALS[role];
-    if (!creds) return { success: false, error: 'Unknown demo role.' };
-    return loginWithPassword(creds.email, creds.password);
-  };
-
   const updateProfile = (patch: Partial<UserProfile>) => {
     if (!user) return;
     const optimistic = { ...user, ...patch };
@@ -171,6 +182,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     api(`/api/users/${userId}`, { method: 'PATCH', body: JSON.stringify({ role }) }).then(() => refreshAdminData());
   };
 
+  const createUser: AuthContextType['createUser'] = async (data) => {
+    const { ok, data: res } = await api('/api/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    if (ok && res?.success) { await refreshAdminData(); return { success: true }; }
+    return { success: false, error: res?.error || 'Failed to create user.' };
+  };
+
+  const updateUser: AuthContextType['updateUser'] = async (userId, data) => {
+    const { ok, data: res } = await api(`/api/users/${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    if (ok && res?.success) { await refreshAdminData(); return { success: true }; }
+    return { success: false, error: res?.error || 'Failed to update user.' };
+  };
+
   // Server records activity automatically on meaningful actions. This provides
   // instant optimistic feedback in the admin feed; a refresh reconciles to truth.
   const logActivity = (log: Omit<SystemActivityLog, 'id' | 'timestamp'>) => {
@@ -184,6 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         user,
         isAuthenticated: !!user,
+        isAuthReady,
         isLoading,
         users,
         activityLogs,
@@ -191,11 +221,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loginWithOtp,
         signup,
         logout,
-        quickDemoLogin,
         updateProfile,
         toggleBlockUser,
         deleteUser,
         updateUserRole,
+        createUser,
+        updateUser,
         logActivity,
         clearActivityLogs,
       }}

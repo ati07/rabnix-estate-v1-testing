@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { 
+import {
   ShieldCheck, 
   CheckCircle2, 
   XCircle, 
@@ -49,9 +49,13 @@ import {
   LayoutDashboard,
   Menu,
   Shield,
-  Settings
+  Settings,
+  Pencil,
+  UserPlus,
+  Loader2,
+  Save
 } from 'lucide-react';
-import { useAuth, DEMO_USERS } from '@/lib/authContext';
+import { useAuth } from '@/lib/authContext';
 import { useProperties } from '@/lib/propertyContext';
 import { Property, VerificationStatus, UserRole, UserProfile, SystemActivityLog } from '@/lib/types';
 import {
@@ -62,24 +66,36 @@ import {
 } from '@/components/DashboardCharts';
 
 export default function AdminPortalPage() {
-  const router = useRouter();
-  const { 
-    user, 
-    users, 
-    activityLogs, 
-    toggleBlockUser, 
-    deleteUser, 
-    quickDemoLogin, 
-    logActivity, 
-    clearActivityLogs 
+  const {
+    user,
+    isAuthReady,
+    users,
+    activityLogs,
+    toggleBlockUser,
+    deleteUser,
+    createUser,
+    updateUser,
+    logActivity,
+    clearActivityLogs
   } = useAuth();
-  
-  const { 
-    properties, 
+
+  const router = useRouter();
+
+  // Client-side guard (defense-in-depth alongside middleware.ts): once the
+  // session check resolves, bounce anyone who isn't an admin so the portal
+  // shell never renders for non-admins.
+  useEffect(() => {
+    if (isAuthReady && user?.role !== 'admin') {
+      router.replace(user ? '/dashboard' : '/auth');
+    }
+  }, [isAuthReady, user, router]);
+
+  const {
+    properties,
     inquiries,
-    updateVerificationStatus, 
-    deleteProperty, 
-    resetToDefaultData 
+    updateVerificationStatus,
+    updateProperty,
+    deleteProperty
   } = useProperties();
 
   // Navigation Tabs in Admin Suite
@@ -99,6 +115,8 @@ export default function AdminPortalPage() {
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [blockUserModalTarget, setBlockUserModalTarget] = useState<UserProfile | null>(null);
   const [blockCustomReason, setBlockCustomReason] = useState('Multiple policy violations or duplicate spam listings reported.');
+  const [createUserModalOpen, setCreateUserModalOpen] = useState(false);
+  const [editUserTarget, setEditUserTarget] = useState<UserProfile | null>(null);
 
   // Activity Stream Filters
   const [activityFilterAction, setActivityFilterAction] = useState<string>('all');
@@ -248,6 +266,24 @@ export default function AdminPortalPage() {
     showBanner(`Listing "${prop.title}" moved to Under Review.`);
   };
 
+  // Toggle a promotion flag (admin only) that controls which curated home-page rail
+  // a listing surfaces in: isFeatured -> Featured rail, isExclusiveOwner -> Owner rails.
+  const handleTogglePromotion = (prop: Property, flag: 'isFeatured' | 'isExclusiveOwner') => {
+    const next = !prop[flag];
+    const label = flag === 'isFeatured' ? 'Featured' : 'Exclusive Owner';
+    updateProperty(prop.id, { [flag]: next });
+    logActivity({
+      action: 'property_promoted',
+      actorName: user?.name || 'Admin',
+      actorRole: 'Admin',
+      details: `${next ? 'Enabled' : 'Disabled'} ${label} promotion on "${prop.title}".`,
+      targetTitle: prop.title,
+      targetId: prop.id,
+      severity: 'info'
+    });
+    showBanner(`${next ? 'Promoted' : 'Removed'} "${prop.title}" ${next ? 'into' : 'from'} the ${label} home rail.`);
+  };
+
   const handleConfirmRejection = (e: React.FormEvent) => {
     e.preventDefault();
     if (!rejectionModalProperty) return;
@@ -277,6 +313,19 @@ export default function AdminPortalPage() {
     toggleBlockUser(u.id);
     showBanner(`Reinstated user "${u.name}" to active standing.`);
   };
+
+  // While the session resolves, or while redirecting a non-admin away, render a
+  // neutral placeholder instead of the admin shell.
+  if (!isAuthReady || user?.role !== 'admin') {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+        <div className="flex items-center gap-3 text-[#64748B] text-sm font-bold">
+          <Loader2 className="w-5 h-5 animate-spin text-[#18A67D]" />
+          <span>Verifying administrator access…</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-between">
@@ -309,29 +358,6 @@ export default function AdminPortalPage() {
           </div>
 
           <div className="flex items-center gap-2.5">
-            {/* Quick Role Switch for QA */}
-            <div className="hidden md:flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-xl border border-white/15 text-xs">
-              <span className="text-[11px] text-slate-300 font-semibold">Demo Role:</span>
-              {(['admin', 'owner', 'agent', 'builder', 'buyer'] as UserRole[]).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => {
-                    quickDemoLogin(r);
-                    if (r !== 'admin') {
-                      router.push('/dashboard');
-                    }
-                  }}
-                  className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase transition-all cursor-pointer ${
-                    r === 'admin'
-                      ? 'bg-[#18A67D] text-white shadow-xs'
-                      : 'text-slate-300 hover:text-white hover:bg-white/10'
-                  }`}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-
             <Link
               href="/dashboard"
               className="text-xs font-bold text-white bg-white/10 hover:bg-white/20 px-3.5 py-1.5 rounded-xl border border-white/20 transition-all flex items-center gap-1.5"
@@ -544,36 +570,8 @@ export default function AdminPortalPage() {
             </button>
           </nav>
 
-          {/* Quick Demo Persona Switcher */}
-          <div className="mt-2 pt-3 border-t border-[#E2E8F0] space-y-2">
-            <div className="text-[10px] font-extrabold text-[#64748B] uppercase tracking-wider flex items-center justify-between">
-              <span>Switch Test Persona:</span>
-            </div>
-            <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-              {(['admin', 'owner', 'agent', 'builder', 'buyer'] as UserRole[]).map((r) => (
-                <button
-                  key={r}
-                  id={`admin-persona-${r}`}
-                  onClick={() => {
-                    quickDemoLogin(r);
-                    if (r !== 'admin') {
-                      router.push('/dashboard');
-                    }
-                  }}
-                  className={`p-1.5 rounded-lg font-bold border transition-all cursor-pointer ${
-                    r === 'admin'
-                      ? 'bg-[#0F2A43] text-white border-[#0F2A43] shadow-xs'
-                      : 'bg-white text-[#64748B] border-[#CBD5E1] hover:border-[#0F2A43] hover:text-[#0F2A43]'
-                  }`}
-                >
-                  <span className="capitalize">{r}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Shortcuts & Actions */}
-          <div className="pt-3 border-t border-[#E2E8F0] space-y-1.5 text-xs font-bold">
+          <div className="mt-2 pt-3 border-t border-[#E2E8F0] space-y-1.5 text-xs font-bold">
             <Link
               href="/dashboard"
               className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-[#0F2A43] transition-colors"
@@ -595,19 +593,6 @@ export default function AdminPortalPage() {
               </span>
               <ArrowUpRight className="w-3.5 h-3.5 text-slate-400" />
             </Link>
-
-            <button
-              onClick={() => {
-                resetToDefaultData();
-                showBanner('Reset all demo listings and users to initial baseline seed.');
-              }}
-              className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-rose-700 bg-rose-50 hover:bg-rose-100 transition-colors cursor-pointer text-left"
-            >
-              <span className="flex items-center gap-2">
-                <RotateCcw className="w-3.5 h-3.5" />
-                Reset Demo Seed
-              </span>
-            </button>
           </div>
         </aside>
 
@@ -1093,6 +1078,38 @@ export default function AdminPortalPage() {
                           </div>
                         </div>
 
+                        {/* Home-page promotion placement (admin only) */}
+                        <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-[#F1F5F9]">
+                          <span className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider flex items-center gap-1">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Home Rails:
+                          </span>
+                          <button
+                            onClick={() => handleTogglePromotion(prop, 'isFeatured')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
+                              prop.isFeatured
+                                ? 'bg-amber-500 text-white border-amber-500 shadow-xs'
+                                : 'bg-white text-[#64748B] border-[#CBD5E1] hover:border-amber-500 hover:text-amber-700'
+                            }`}
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>{prop.isFeatured ? 'Featured ✓' : 'Feature'}</span>
+                          </button>
+                          <button
+                            onClick={() => handleTogglePromotion(prop, 'isExclusiveOwner')}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer border ${
+                              prop.isExclusiveOwner
+                                ? 'bg-[#0E7C5D] text-white border-[#0E7C5D] shadow-xs'
+                                : 'bg-white text-[#64748B] border-[#CBD5E1] hover:border-[#0E7C5D] hover:text-[#0E7C5D]'
+                            }`}
+                          >
+                            <BadgeCheck className="w-3.5 h-3.5" />
+                            <span>{prop.isExclusiveOwner ? 'Exclusive Owner ✓' : 'Exclusive Owner'}</span>
+                          </button>
+                          {currentStatus !== 'approved' && (
+                            <span className="text-[10px] text-slate-400 italic">Approve first to make it live on the home page.</span>
+                          )}
+                        </div>
+
                         {/* Action Buttons Row */}
                         <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#F1F5F9]">
                           <div className="flex items-center gap-2">
@@ -1242,7 +1259,16 @@ export default function AdminPortalPage() {
                   <Users className="w-4 h-4 text-[#18A67D]" />
                   <span>REGISTERED USERS & MODERATION STANDING ({filteredUsers.length})</span>
                 </div>
-                <span className="text-xs text-[#64748B]">Admin has full authority to block or reinstate user accounts</span>
+                <div className="flex items-center gap-3">
+                  <span className="hidden md:inline text-xs text-[#64748B]">Admin has full authority to create, edit, block or remove accounts</span>
+                  <button
+                    onClick={() => setCreateUserModalOpen(true)}
+                    className="px-3 py-1.5 rounded-xl bg-[#0F2A43] hover:bg-[#163b5c] text-white text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer shrink-0"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>Add User</span>
+                  </button>
+                </div>
               </div>
 
               {filteredUsers.length === 0 ? (
@@ -1376,7 +1402,16 @@ export default function AdminPortalPage() {
                             {/* Actions */}
                             <td className="py-3.5 px-4 text-right">
                               <div className="flex items-center justify-end gap-2">
-                                
+
+                                <button
+                                  onClick={() => setEditUserTarget(u)}
+                                  className="px-3 py-1.5 rounded-xl font-bold text-xs flex items-center gap-1 bg-slate-50 hover:bg-slate-100 text-[#0F2A43] border border-slate-200 transition-all cursor-pointer"
+                                  title="Edit user profile"
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                  <span>Edit</span>
+                                </button>
+
                                 {u.isBlocked ? (
                                   <button
                                     onClick={() => handleUnblockUser(u)}
@@ -1745,27 +1780,6 @@ export default function AdminPortalPage() {
                   </button>
                 </div>
 
-                <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="font-bold text-xs text-rose-900 flex items-center gap-2">
-                      <RotateCcw className="w-4 h-4 text-rose-600" />
-                      <span>Reset Demo Database Seed</span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-rose-700">
-                    Restores all initial verified and pending listings, default test users, and demo inquiries back to the baseline sandbox state.
-                  </p>
-                  <button
-                    onClick={() => {
-                      resetToDefaultData();
-                      showBanner('Reset all demo listings and users to default state.');
-                    }}
-                    className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Restore Initial Seed</span>
-                  </button>
-                </div>
               </div>
             </div>
 
@@ -1857,6 +1871,29 @@ export default function AdminPortalPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* ---------------------------------------------------- */}
+      {/* MODAL: CREATE / EDIT USER                            */}
+      {/* ---------------------------------------------------- */}
+      {(createUserModalOpen || editUserTarget) && (
+        <UserFormModal
+          key={editUserTarget?.id || 'create'}
+          mode={editUserTarget ? 'edit' : 'create'}
+          target={editUserTarget}
+          onClose={() => { setCreateUserModalOpen(false); setEditUserTarget(null); }}
+          onSubmit={async (data) => {
+            const res = editUserTarget
+              ? await updateUser(editUserTarget.id, data)
+              : await createUser(data as Parameters<typeof createUser>[0]);
+            if (res.success) {
+              showBanner(editUserTarget
+                ? `Updated profile for "${data.name}".`
+                : `Created new ${String(data.role).toUpperCase()} account for "${data.name}".`);
+            }
+            return res;
+          }}
+        />
       )}
 
       {/* ---------------------------------------------------- */}
@@ -1957,6 +1994,224 @@ export default function AdminPortalPage() {
         </div>
       </footer>
 
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------
+// Create / Edit user form modal (admin only)
+// ------------------------------------------------------------------
+const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
+  { value: 'buyer', label: 'Buyer' },
+  { value: 'owner', label: 'Individual Owner' },
+  { value: 'agent', label: 'RERA Agent' },
+  { value: 'builder', label: 'Builder / Developer' },
+  { value: 'admin', label: 'Platform Admin' },
+];
+
+function UserFormModal({
+  mode,
+  target,
+  onClose,
+  onSubmit,
+}: {
+  mode: 'create' | 'edit';
+  target: UserProfile | null;
+  onClose: () => void;
+  onSubmit: (data: {
+    name: string;
+    email: string;
+    phone: string;
+    role: UserRole;
+    city?: string;
+    companyName?: string;
+    reraNumber?: string;
+    password?: string;
+  }) => Promise<{ success: boolean; error?: string }>;
+}) {
+  const [name, setName] = useState(target?.name || '');
+  const [email, setEmail] = useState(target?.email || '');
+  const [phone, setPhone] = useState(target?.phone || '');
+  const [role, setRole] = useState<UserRole>(target?.role || 'buyer');
+  const [city, setCity] = useState(target?.city || '');
+  const [companyName, setCompanyName] = useState(target?.companyName || '');
+  const [reraNumber, setReraNumber] = useState(target?.reraNumber || '');
+  const [password, setPassword] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const showOrgFields = role === 'agent' || role === 'builder';
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (!name.trim() || !email.trim() || !phone.trim()) {
+      setError('Name, email and phone are required.');
+      return;
+    }
+    if (mode === 'create' && password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+    if (mode === 'edit' && password && password.length < 6) {
+      setError('New password must be at least 6 characters (leave blank to keep current).');
+      return;
+    }
+    setSubmitting(true);
+    const payload = {
+      name: name.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+      role,
+      city: city.trim(),
+      companyName: companyName.trim(),
+      reraNumber: reraNumber.trim(),
+      ...(password ? { password } : {}),
+    };
+    const res = await onSubmit(payload);
+    setSubmitting(false);
+    if (res.success) onClose();
+    else setError(res.error || 'Something went wrong.');
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between border-b pb-3">
+          <div className="flex items-center gap-2 text-[#0F2A43] font-extrabold text-base">
+            {mode === 'create' ? <UserPlus className="w-5 h-5 text-[#18A67D]" /> : <Pencil className="w-5 h-5 text-[#18A67D]" />}
+            <span>{mode === 'create' ? 'Create New User Account' : 'Edit User Profile'}</span>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {error && (
+          <div className="flex items-start gap-2 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
+            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-[#172033] uppercase">Full Name</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Rahul Sharma"
+                className="w-full p-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs font-medium outline-none focus:bg-white focus:border-[#18A67D]"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-[#172033] uppercase">Account Role</label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value as UserRole)}
+                className="w-full p-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs font-medium outline-none focus:bg-white focus:border-[#18A67D]"
+              >
+                {ROLE_OPTIONS.map((r) => (
+                  <option key={r.value} value={r.value}>{r.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-[#172033] uppercase">Email Address</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="user@example.com"
+                className="w-full p-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs font-medium outline-none focus:bg-white focus:border-[#18A67D]"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-[#172033] uppercase">Phone Number</label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+91 98765 43210"
+                className="w-full p-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs font-medium outline-none focus:bg-white focus:border-[#18A67D]"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-[#172033] uppercase">City</label>
+              <input
+                type="text"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="Bangalore"
+                className="w-full p-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs font-medium outline-none focus:bg-white focus:border-[#18A67D]"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-[#172033] uppercase">
+                {mode === 'create' ? 'Password' : 'Reset Password'}
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={mode === 'create' ? 'Min. 6 characters' : 'Leave blank to keep current'}
+                className="w-full p-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs font-medium outline-none focus:bg-white focus:border-[#18A67D]"
+              />
+            </div>
+          </div>
+
+          {showOrgFields && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-[#172033] uppercase">Company / Organization</label>
+                <input
+                  type="text"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  placeholder="e.g. Prestige Group"
+                  className="w-full p-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs font-medium outline-none focus:bg-white focus:border-[#18A67D]"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-[#172033] uppercase">RERA Number</label>
+                <input
+                  type="text"
+                  value={reraNumber}
+                  onChange={(e) => setReraNumber(e.target.value)}
+                  placeholder="e.g. PRM/KA/RERA/..."
+                  className="w-full p-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs font-medium outline-none focus:bg-white focus:border-[#18A67D]"
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center justify-end gap-3 pt-2 border-t">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-xl border text-xs font-bold text-[#0F2A43] hover:bg-[#F8FAFC] cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-5 py-2 rounded-xl bg-[#0F2A43] hover:bg-[#163b5c] text-white text-xs font-bold shadow-md flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+            >
+              {submitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+              <span>{mode === 'create' ? 'Create Account' : 'Save Changes'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

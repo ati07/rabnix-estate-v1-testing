@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, use } from 'react';
+import React, { useState, useMemo, useEffect, use } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -32,6 +32,7 @@ import { CURATED_COLLECTIONS, CuratedCollection } from '@/lib/collectionsData';
 import { CITIES_DATA } from '@/lib/realEstateData';
 import { useProperties } from '@/lib/propertyContext';
 import { useAuth } from '@/lib/authContext';
+import type { Property } from '@/lib/types';
 
 const ICON_MAP: Record<string, any> = {
   CheckCircle2,
@@ -47,12 +48,29 @@ export default function SingleCollectionPage({ params }: { params: Promise<{ id:
   const collectionId = resolvedParams.id;
   const router = useRouter();
 
-  const collection = useMemo(() => {
-    return CURATED_COLLECTIONS.find((c) => c.id === collectionId) || CURATED_COLLECTIONS[0];
+  // Seed from static data, then hydrate the collection + its live matched listings from the API.
+  const [collection, setCollection] = useState<CuratedCollection>(
+    () => CURATED_COLLECTIONS.find((c) => c.id === collectionId) || CURATED_COLLECTIONS[0]
+  );
+  const [liveProperties, setLiveProperties] = useState<Property[] | null>(null);
+  useEffect(() => {
+    let active = true;
+    fetch(`/api/collections/${collectionId}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!active || !d?.success) return;
+        if (d.collection) setCollection(d.collection);
+        if (Array.isArray(d.properties)) setLiveProperties(d.properties);
+      })
+      .catch(() => { /* keep static fallback */ });
+    return () => { active = false; };
   }, [collectionId]);
 
-  const { properties, isShortlisted, toggleShortlist } = useProperties();
+  const { properties: ctxProperties, isShortlisted, toggleShortlist } = useProperties();
   const { user } = useAuth();
+
+  // Prefer the API's live-matched listings; fall back to the shared context set.
+  const properties = liveProperties ?? ctxProperties;
 
   // Local filter states
   const [selectedCity, setSelectedCity] = useState<string>('All');

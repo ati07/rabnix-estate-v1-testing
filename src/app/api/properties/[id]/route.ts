@@ -68,13 +68,42 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       });
     }
 
-    // Owner-editable fields (also editable by admin).
+    // Promotion flags (isFeatured / isExclusiveOwner / priceDrop): admin only.
+    // These control which curated home-page rails a listing surfaces in, so owners
+    // must not be able to self-promote — only admins can toggle them.
+    const PROMO_FLAGS = ['isFeatured', 'isExclusiveOwner', 'priceDrop'] as const;
+    const promoChanges: string[] = [];
+    for (const flag of PROMO_FLAGS) {
+      if (b[flag] !== undefined) {
+        if (!isAdmin) {
+          return NextResponse.json({ success: false, error: 'Only admins can change promotion flags.' }, { status: 403 });
+        }
+        data[flag] = !!b[flag];
+        promoChanges.push(`${flag}=${!!b[flag]}`);
+      }
+    }
+    if (promoChanges.length) {
+      await prisma.activityLog.create({
+        data: {
+          action: 'property_promoted',
+          actorName: user.name,
+          actorRole: 'Admin',
+          details: `Updated promotion flags on "${existing.title}": ${promoChanges.join(', ')}.`,
+          targetTitle: existing.title,
+          targetId: existing.id,
+          severity: 'info',
+        },
+      });
+    }
+
+    // Owner-editable fields (also editable by admin). Promotion flags are handled
+    // above (admin only) and deliberately excluded here.
     const editable: (keyof Property)[] = [
       'title', 'tagline', 'listingType', 'category', 'city', 'locality', 'subLocality',
       'price', 'priceFormatted', 'pricePerSqFt', 'maintenance', 'bhk', 'bathrooms', 'balconies',
       'carpetAreaSqFt', 'superBuiltUpAreaSqFt', 'furnishing', 'floor', 'totalFloors', 'facing',
       'constructionStatus', 'possessionDate', 'reraId', 'images', 'floorPlanImage', 'description',
-      'amenities', 'isFeatured',
+      'amenities',
     ];
     for (const key of editable) {
       if (b[key] !== undefined) data[key] = b[key];

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, Suspense } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
@@ -32,9 +32,20 @@ function BuildersDirectoryContent() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [minExperience, setMinExperience] = useState<number>(0);
 
+  // Live builders from the API; seed with static data so first paint + offline still work.
+  const [builders, setBuilders] = useState<Builder[]>(BUILDERS_DATA);
+  useEffect(() => {
+    let active = true;
+    fetch('/api/builders')
+      .then((r) => r.json())
+      .then((d) => { if (active && d?.success && Array.isArray(d.builders)) setBuilders(d.builders); })
+      .catch(() => { /* keep static fallback */ });
+    return () => { active = false; };
+  }, []);
+
   // Filter builders
   const filteredBuilders = useMemo(() => {
-    return BUILDERS_DATA.filter((b) => {
+    return builders.filter((b) => {
       // City filter
       if (selectedCity !== 'All' && !b.citiesPresent.includes(selectedCity)) {
         return false;
@@ -58,7 +69,7 @@ function BuildersDirectoryContent() {
       }
       return true;
     });
-  }, [selectedCity, searchQuery, minExperience]);
+  }, [builders, selectedCity, searchQuery, minExperience]);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-between">
@@ -131,7 +142,7 @@ function BuildersDirectoryContent() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/15 text-xs">
               <div>
                 <span className="text-slate-400 block text-[10px] uppercase font-bold">Builders</span>
-                <span className="text-lg font-black text-white">{BUILDERS_DATA.length}+ Verified</span>
+                <span className="text-lg font-black text-white">{builders.length}+ Verified</span>
               </div>
               <div>
                 <span className="text-slate-400 block text-[10px] uppercase font-bold">Delivered Area</span>

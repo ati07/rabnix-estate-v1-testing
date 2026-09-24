@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, use } from 'react';
+import React, { useState, useMemo, useEffect, use } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -38,11 +38,17 @@ export default function SingleBuilderProfilePage({ params }: { params: Promise<{
   const builderId = resolvedParams.id;
   const router = useRouter();
 
-  const builder = useMemo(() => {
-    return (
-      BUILDERS_DATA.find((b) => b.id === builderId || b.slug === builderId) ||
-      BUILDERS_DATA[0]
-    );
+  // Seed from static data for instant paint, then hydrate from the live API.
+  const [builder, setBuilder] = useState<Builder>(
+    () => BUILDERS_DATA.find((b) => b.id === builderId || b.slug === builderId) || BUILDERS_DATA[0]
+  );
+  useEffect(() => {
+    let active = true;
+    fetch(`/api/builders/${builderId}`)
+      .then((r) => r.json())
+      .then((d) => { if (active && d?.success && d.builder) setBuilder(d.builder); })
+      .catch(() => { /* keep static fallback */ });
+    return () => { active = false; };
   }, [builderId]);
 
   const { properties, isShortlisted, toggleShortlist } = useProperties();

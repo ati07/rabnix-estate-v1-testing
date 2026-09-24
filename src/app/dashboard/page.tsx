@@ -140,10 +140,9 @@ const SAMPLE_PHOTO_PRESETS = [
 export default function UserDashboardPage() {
   const router = useRouter();
   const { 
-    user, 
-    isAuthenticated, 
-    logout, 
-    quickDemoLogin, 
+    user,
+    isAuthenticated,
+    logout,
     updateProfile,
     users,
     activityLogs,
@@ -710,37 +709,6 @@ export default function UserDashboardPage() {
               </Link>
             </div>
 
-            <div className="pt-4 border-t border-[#E2E8F0]">
-              <p className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider mb-3">
-                1-Click Quick Demo Login:
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <button
-                  onClick={() => quickDemoLogin('owner')}
-                  className="p-2.5 bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-[#CBD5E1] rounded-xl text-xs font-bold text-[#0F2A43] transition-all cursor-pointer"
-                >
-                  🏡 Owner
-                </button>
-                <button
-                  onClick={() => quickDemoLogin('agent')}
-                  className="p-2.5 bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-[#CBD5E1] rounded-xl text-xs font-bold text-[#0F2A43] transition-all cursor-pointer"
-                >
-                  🏢 Agent
-                </button>
-                <button
-                  onClick={() => quickDemoLogin('builder')}
-                  className="p-2.5 bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-[#CBD5E1] rounded-xl text-xs font-bold text-[#0F2A43] transition-all cursor-pointer"
-                >
-                  🏗️ Builder
-                </button>
-                <button
-                  onClick={() => quickDemoLogin('buyer')}
-                  className="p-2.5 bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-[#CBD5E1] rounded-xl text-xs font-bold text-[#0F2A43] transition-all cursor-pointer"
-                >
-                  🔍 Buyer
-                </button>
-              </div>
-            </div>
           </div>
         </main>
       </div>
@@ -996,7 +964,8 @@ export default function UserDashboardPage() {
               </span>
             </button>
 
-            {/* Admin Management Section */}
+            {/* Admin Management Section — only for platform admins */}
+            {currentRole === 'admin' && (
             <div className="pt-3 pb-1 border-t border-slate-200 mt-3">
               <div className="flex items-center justify-between px-3 mb-1.5">
                 <span className="text-[10px] font-extrabold text-[#0F2A43] uppercase tracking-wider flex items-center gap-1">
@@ -1105,30 +1074,8 @@ export default function UserDashboardPage() {
                 <ExternalLink className="w-3 h-3 text-slate-300" />
               </Link>
             </div>
+            )}
           </nav>
-
-          {/* Quick Demo Switcher */}
-          <div className="mt-4 pt-3 border-t border-[#E2E8F0] space-y-2">
-            <div className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider flex items-center justify-between">
-              <span>Switch Test Persona:</span>
-            </div>
-            <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-              {(['admin', 'owner', 'agent', 'builder', 'buyer'] as UserRole[]).map((r) => (
-                <button
-                  key={r}
-                  id={`demo-role-${r}`}
-                  onClick={() => quickDemoLogin(r)}
-                  className={`p-1.5 rounded-lg font-bold border transition-all cursor-pointer ${
-                    currentRole === r
-                      ? 'bg-[#0F2A43] text-white border-[#0F2A43]'
-                      : 'bg-[#F8FAFC] text-[#64748B] border-[#E2E8F0] hover:text-[#0F2A43]'
-                  }`}
-                >
-                  {r.toUpperCase()}
-                </button>
-              ))}
-            </div>
-          </div>
         </aside>
 
         {/* MAIN DASHBOARD CONTENT AREA */}

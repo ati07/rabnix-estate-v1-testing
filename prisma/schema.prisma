@@ -128,3 +128,128 @@ model ActivityLog {
 
   @@index([createdAt])
 }
+
+// --- Catalog content (mirrors src/lib/buildersData.ts, homeSectionsData.ts, collectionsData.ts) ---
+// These power the Builders, Projects, Agents and Collections pages. IDs are kept as
+// the human-readable slugs from the source data so existing links keep working.
+
+model Builder {
+  id                     String   @id // slug, e.g. "godrej-properties"
+  name                   String
+  slug                   String   @unique
+  logo                   String
+  bannerImage            String
+  tagline                String
+  badge                  String
+  experienceYears        Int
+  experienceText         String
+  establishedYear        Int
+  projectsDeliveredCount Int
+  projectsDeliveredText  String
+  ongoingProjectsCount   Int
+  ongoingProjectsText    String
+  totalSqFtDelivered     String
+  rating                 Float
+  reviewsCount           Int
+  headquarters           String
+  reraRegistrationNumber String
+  citiesPresent          String[]
+  about                  String
+  specialties            String[]
+  awards                 String[]
+  contactPhone           String
+  contactEmail           String
+  website                String
+  projects               Json     // BuilderProject[] (nested, incl. associatedPropertyIds)
+  createdAt              DateTime @default(now())
+}
+
+model FeaturedProject {
+  id                       String   @id // slug, e.g. "proj-dlf-camellias"
+  section                  String   @default("featured") // featured | top
+  name                     String
+  builderName              String
+  builderLogo              String
+  builderId                String?
+  city                     String
+  locality                 String
+  address                  String?
+  marketedBy               String
+  bhkConfig                String
+  priceFormatted           String
+  minPrice                 Int
+  maxPrice                 Int?
+  pricePerSqFt             String?
+  image                    String
+  galleryImages            String[]
+  status                   String
+  tag                      String?
+  reraNumber               String?
+  possessionDate           String?
+  launchDate               String?
+  totalAreaAcres           String?
+  totalTowers              Int?
+  totalUnits               Int?
+  openSpacePercent         String?
+  description              String?
+  highlights               String[]
+  amenities                String[]
+  floorPlans               Json?    // ProjectFloorPlan[]
+  nearbyLandmarks          Json?    // ProjectNearby[]
+  builderExperience        String?
+  builderDeliveredProjects Int?
+  createdAt                DateTime @default(now())
+
+  @@index([city])
+  @@index([section])
+}
+
+model Agent {
+  id                     String   @id // slug, e.g. "agent-ved-prakash"
+  name                   String
+  avatar                 String
+  badge                  String
+  agencyName             String
+  agencyLogo             String
+  operatingSince         Int
+  experienceYears        Int?
+  buyersServed           String
+  propertiesForSaleCount Int
+  propertiesForRentCount Int?
+  city                   String
+  rating                 Float
+  phone                  String
+  email                  String?
+  reraId                 String?
+  address                String?
+  about                  String?
+  specializations        String[]
+  areasServed            String[]
+  languages              String[]
+  reviews                Json?    // AgentReview[]
+  verifiedDocuments      String[]
+  createdAt              DateTime @default(now())
+
+  @@index([city])
+}
+
+model Collection {
+  id                String   @id // slug, e.g. "zero-brokerage"
+  title             String
+  subtitle          String
+  tag               String
+  tagColor          String
+  iconName          String
+  heroImage         String
+  badge             String
+  actionText        String
+  avgPriceRange     String
+  avgYield          String
+  totalListingsText String
+  overview          String
+  keyHighlights     Json     // { title, description }[]
+  filters           Json     // CuratedCollection["filters"]
+  recommendedCities String[]
+  faqs              Json     // { question, answer }[]
+  createdAt         DateTime @default(now())
+}

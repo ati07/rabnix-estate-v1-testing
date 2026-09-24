@@ -32,15 +32,15 @@ interface AuthFormProps {
 }
 
 export function AuthForm({ initialMode = 'signin', onSuccess, isModal = false }: AuthFormProps) {
-  const { loginWithPassword, loginWithOtp, signup, quickDemoLogin, isLoading } = useAuth();
+  const { loginWithPassword, loginWithOtp, signup, isLoading } = useAuth();
 
   const [mode, setMode] = useState<'signin' | 'signup'>(initialMode);
   const [signInMethod, setSignInMethod] = useState<'password' | 'otp'>('password');
   
   // Sign In Form States
-  const [signInIdentifier, setSignInIdentifier] = useState('rahul.sharma@example.com');
-  const [signInPassword, setSignInPassword] = useState('password123');
-  const [signInPhone, setSignInPhone] = useState('9876543210');
+  const [signInIdentifier, setSignInIdentifier] = useState('');
+  const [signInPassword, setSignInPassword] = useState('');
+  const [signInPhone, setSignInPhone] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otpTimer, setOtpTimer] = useState(30);
@@ -54,7 +54,7 @@ export function AuthForm({ initialMode = 'signin', onSuccess, isModal = false }:
   const [signUpCity, setSignUpCity] = useState('Bangalore');
   const [signUpCompany, setSignUpCompany] = useState('');
   const [signUpRera, setSignUpRera] = useState('');
-  const [agreeTerms, setAgreeTerms] = useState(true);
+  const [agreeTerms, setAgreeTerms] = useState(false);
 
   // UI state
   const [showPassword, setShowPassword] = useState(false);
@@ -83,7 +83,6 @@ export function AuthForm({ initialMode = 'signin', onSuccess, isModal = false }:
     setErrorMessage(null);
     setOtpSent(true);
     setOtpTimer(30);
-    setOtpCode('1234'); // Pre-fill for best UX demonstration
     setSuccessMessage('OTP sent successfully to +91 ' + signInPhone);
   };
 
@@ -167,19 +166,6 @@ export function AuthForm({ initialMode = 'signin', onSuccess, isModal = false }:
       }
     } else {
       setErrorMessage(res.error || 'Failed to create account. Please try again.');
-    }
-  };
-
-  const handleQuickDemo = async (role: UserRole) => {
-    setErrorMessage(null);
-    const res = await quickDemoLogin(role);
-    if (res.success) {
-      setSuccessMessage(`Signed in as Demo ${role.toUpperCase()}!`);
-      if (onSuccess) {
-        setTimeout(onSuccess, 600);
-      }
-    } else {
-      setErrorMessage(res.error || 'Demo login failed. Please try again.');
     }
   };
 
@@ -383,13 +369,12 @@ export function AuthForm({ initialMode = 'signin', onSuccess, isModal = false }:
                           maxLength={6}
                           value={otpCode}
                           onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                          placeholder="Enter OTP (e.g. 1234)"
+                          placeholder="Enter OTP"
                           autoFocus
                           className="w-full text-center tracking-[0.5em] text-lg font-black py-2 bg-white border-2 border-[#18A67D] rounded-lg text-[#0F2A43] outline-none"
                         />
                       </div>
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-[11px] text-[#64748B]">Demo OTP is <strong>1234</strong></span>
+                      <div className="flex items-center justify-end text-xs">
                         {otpTimer > 0 ? (
                           <span className="text-[#64748B] text-[11px]">Resend in {otpTimer}s</span>
                         ) : (
@@ -425,55 +410,6 @@ export function AuthForm({ initialMode = 'signin', onSuccess, isModal = false }:
               </button>
 
             </form>
-
-            {/* Quick 1-Click Test Accounts */}
-            <div className="pt-3 border-t border-[#E2E8F0] space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-amber-500" />
-                  <span>Instant 1-Click Demo Login</span>
-                </span>
-                <span className="text-[10px] text-slate-400">Preloaded Roles</span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                <button
-                  type="button"
-                  id="auth-quick-buyer-btn"
-                  onClick={() => handleQuickDemo('buyer')}
-                  className="p-2 rounded-lg bg-[#F8FAFC] hover:bg-[#E7F6F1] hover:text-[#0E7C5D] border border-[#E2E8F0] text-center transition-all cursor-pointer group"
-                >
-                  <div className="text-[11px] font-bold group-hover:text-[#0E7C5D]">Rahul</div>
-                  <div className="text-[9px] text-[#64748B]">Buyer / Tenant</div>
-                </button>
-                <button
-                  type="button"
-                  id="auth-quick-owner-btn"
-                  onClick={() => handleQuickDemo('owner')}
-                  className="p-2 rounded-lg bg-[#F8FAFC] hover:bg-[#E7F6F1] hover:text-[#0E7C5D] border border-[#E2E8F0] text-center transition-all cursor-pointer group"
-                >
-                  <div className="text-[11px] font-bold group-hover:text-[#0E7C5D]">Priya</div>
-                  <div className="text-[9px] text-[#64748B]">Property Owner</div>
-                </button>
-                <button
-                  type="button"
-                  id="auth-quick-agent-btn"
-                  onClick={() => handleQuickDemo('agent')}
-                  className="p-2 rounded-lg bg-[#F8FAFC] hover:bg-[#E7F6F1] hover:text-[#0E7C5D] border border-[#E2E8F0] text-center transition-all cursor-pointer group"
-                >
-                  <div className="text-[11px] font-bold group-hover:text-[#0E7C5D]">Vikram</div>
-                  <div className="text-[9px] text-[#64748B]">Verified Agent</div>
-                </button>
-                <button
-                  type="button"
-                  id="auth-quick-builder-btn"
-                  onClick={() => handleQuickDemo('builder')}
-                  className="p-2 rounded-lg bg-[#F8FAFC] hover:bg-[#E7F6F1] hover:text-[#0E7C5D] border border-[#E2E8F0] text-center transition-all cursor-pointer group"
-                >
-                  <div className="text-[11px] font-bold group-hover:text-[#0E7C5D]">Amit</div>
-                  <div className="text-[9px] text-[#64748B]">Top Builder</div>
-                </button>
-              </div>
-            </div>
 
           </div>
         )}

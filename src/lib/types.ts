@@ -172,7 +172,7 @@ export interface PropertyInquiry {
 export interface SystemActivityLog {
   id: string;
   timestamp: string;
-  action: 'property_created' | 'property_verified' | 'property_rejected' | 'user_registered' | 'user_blocked' | 'user_unblocked' | 'inquiry_received' | 'property_deleted';
+  action: 'property_created' | 'property_verified' | 'property_rejected' | 'property_promoted' | 'user_registered' | 'user_blocked' | 'user_unblocked' | 'inquiry_received' | 'property_deleted';
   actorName: string;
   actorRole: string;
   details: string;

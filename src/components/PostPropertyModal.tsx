@@ -37,7 +37,7 @@ export function PostPropertyModal({
   onClose,
   onPropertyAdded,
 }: PostPropertyModalProps) {
-  const { user, isAuthenticated, quickDemoLogin } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [step, setStep] = useState<number>(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -254,33 +254,6 @@ export function PostPropertyModal({
               >
                 Register Free
               </Link>
-            </div>
-
-            <div className="pt-3 border-t border-[#E2E8F0] max-w-sm mx-auto">
-              <p className="text-[10px] font-bold text-[#64748B] uppercase mb-2">1-Click Test Demo Login:</p>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => quickDemoLogin('owner')}
-                  className="p-2 bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-[#CBD5E1] rounded-lg text-xs font-bold text-[#0F2A43] cursor-pointer"
-                >
-                  🏡 Owner
-                </button>
-                <button
-                  type="button"
-                  onClick={() => quickDemoLogin('agent')}
-                  className="p-2 bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-[#CBD5E1] rounded-lg text-xs font-bold text-[#0F2A43] cursor-pointer"
-                >
-                  🏢 Agent
-                </button>
-                <button
-                  type="button"
-                  onClick={() => quickDemoLogin('builder')}
-                  className="p-2 bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-[#CBD5E1] rounded-lg text-xs font-bold text-[#0F2A43] cursor-pointer"
-                >
-                  🏗️ Builder
-                </button>
-              </div>
             </div>
           </div>
         ) : isSubmitted ? (

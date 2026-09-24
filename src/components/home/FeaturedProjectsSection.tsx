@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, ChevronLeft, ChevronRight, Building, MapPin, Sparkles } from 'lucide-react';
@@ -18,18 +18,29 @@ export function FeaturedProjectsSection({
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Live featured projects from the API; seed with static data for first paint + offline.
+  const [allProjects, setAllProjects] = useState<FeaturedProjectItem[]>(HOME_FEATURED_PROJECTS);
+  useEffect(() => {
+    let active = true;
+    fetch('/api/projects?section=featured')
+      .then((r) => r.json())
+      .then((d) => { if (active && d?.success && Array.isArray(d.projects) && d.projects.length) setAllProjects(d.projects); })
+      .catch(() => { /* keep static fallback */ });
+    return () => { active = false; };
+  }, []);
+
   // Filter projects by active city, or show full curated list if active city has few
   const projects = React.useMemo(() => {
-    const citySpecific = HOME_FEATURED_PROJECTS.filter(
+    const citySpecific = allProjects.filter(
       (p) => p.city.toLowerCase() === cityName.toLowerCase()
     );
     if (citySpecific.length >= 2) return citySpecific;
     // Mix city-specific first, then other top projects
-    const otherProjects = HOME_FEATURED_PROJECTS.filter(
+    const otherProjects = allProjects.filter(
       (p) => p.city.toLowerCase() !== cityName.toLowerCase()
     );
     return [...citySpecific, ...otherProjects];
-  }, [cityName]);
+  }, [allProjects, cityName]);
 
   const handleScroll = (direction: 'left' | 'right') => {
     if (!scrollRef.current) return;

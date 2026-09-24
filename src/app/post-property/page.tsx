@@ -47,7 +47,7 @@ const SAMPLE_PHOTO_PRESETS = [
 
 export default function PostPropertyPage() {
   const router = useRouter();
-  const { user, isAuthenticated, quickDemoLogin } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { addProperty } = useProperties();
 
   // Multi-step progression
@@ -315,36 +315,6 @@ export default function PostPropertyPage() {
                   <Plus className="w-4 h-4" />
                   <span>Register Free</span>
                 </Link>
-              </div>
-
-              {/* 1-Click Instant Demo Login */}
-              <div className="pt-4 border-t border-[#E2E8F0]">
-                <p className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider mb-2.5">
-                  Or Test Instantly with 1-Click Demo Profiles:
-                </p>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => quickDemoLogin('owner')}
-                    className="p-2.5 bg-[#F1F5F9] hover:bg-[#E2E8F0] border border-[#CBD5E1] rounded-xl text-xs font-bold text-[#0F2A43] transition-all cursor-pointer"
-                  >
-                    🏡 Owner
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => quickDemoLogin('agent')}
-                    className="p-2.5 bg-[#F1F5F9] hover:bg-[#E2E8F0] border border-[#CBD5E1] rounded-xl text-xs font-bold text-[#0F2A43] transition-all cursor-pointer"
-                  >
-                    🏢 Agent
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => quickDemoLogin('builder')}
-                    className="p-2.5 bg-[#F1F5F9] hover:bg-[#E2E8F0] border border-[#CBD5E1] rounded-xl text-xs font-bold text-[#0F2A43] transition-all cursor-pointer"
-                  >
-                    🏗️ Builder
-                  </button>
-                </div>
               </div>
             </div>
           </div>
