@@ -76,7 +76,7 @@ export function TopProjectsSection({
         </div>
 
         <button
-          onClick={() => router.push(`/properties?city=${encodeURIComponent(cityName)}&verified=true`)}
+          onClick={() => router.push(`/projects?city=${encodeURIComponent(cityName)}`)}
           className="text-xs sm:text-sm font-semibold text-[#D97706] hover:text-[#B45309] flex items-center gap-1.5 transition-colors cursor-pointer group"
         >
           <span>See all Projects</span>
