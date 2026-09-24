@@ -259,6 +259,10 @@ export default function UserDashboardPage() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarError, setAvatarError] = useState<string | null>(null);
 
+  // Property photo (device) upload state for the inline listing form
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const [photoUploading, setPhotoUploading] = useState(false);
+
   // Sync the profile form with the authenticated user once it loads (or changes).
   useEffect(() => {
     if (!user) return;
@@ -587,6 +591,29 @@ export default function UserDashboardPage() {
   const handleAddPresetPhoto = (url: string) => {
     if (!uploadImages.includes(url)) {
       setUploadImages([...uploadImages, url]);
+    }
+  };
+
+  const handlePhotoDeviceUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploadError(null);
+    setPhotoUploading(true);
+    try {
+      const form = new FormData();
+      Array.from(files).forEach((f) => form.append('files', f));
+      const res = await fetch('/api/upload', { method: 'POST', body: form, credentials: 'same-origin' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success && Array.isArray(data.urls)) {
+        setUploadImages((prev) => [...prev, ...data.urls]);
+      } else {
+        setUploadError(data.error || 'Photo upload failed. Please try again.');
+      }
+    } catch {
+      setUploadError('Photo upload failed. Please try again.');
+    } finally {
+      setPhotoUploading(false);
+      if (photoInputRef.current) photoInputRef.current.value = '';
     }
   };
 
@@ -1597,12 +1624,41 @@ export default function UserDashboardPage() {
                         ))}
                       </div>
 
+                      {/* Upload from device */}
+                      <input
+                        ref={photoInputRef}
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/avif,image/gif"
+                        multiple
+                        onChange={handlePhotoDeviceUpload}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => photoInputRef.current?.click()}
+                        disabled={photoUploading}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-[#CBD5E1] hover:border-[#18A67D] hover:bg-[#E7F6F1] rounded-lg text-xs font-bold text-[#0F2A43] transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {photoUploading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Uploading…</span>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4" />
+                            <span>Upload photos from your device</span>
+                          </>
+                        )}
+                      </button>
+                      <span className="block text-[11px] text-[#64748B]">JPG, PNG, WEBP, AVIF or GIF · up to 5 MB each</span>
+
                       <div className="flex gap-2">
                         <input
                           type="text"
                           value={customPhotoInput}
                           onChange={(e) => setCustomPhotoInput(e.target.value)}
-                          placeholder="Paste image link URL or pick presets below"
+                          placeholder="Or paste image link URL"
                           className="flex-1 text-xs bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg p-2 outline-none focus:border-[#18A67D]"
                         />
                         <button
