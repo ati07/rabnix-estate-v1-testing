@@ -17,9 +17,8 @@ import {
   Layers, 
   Sparkles, 
   ArrowLeft, 
-  Check, 
-  Calculator, 
-  Info, 
+  Check,
+  Info,
   Award,
   AlertCircle,
   FileText,
@@ -66,20 +65,6 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
   const [isSubmittingInquiry, setIsSubmittingInquiry] = useState(false);
   const [isShortlisted, setIsShortlisted] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
-
-  // EMI Calculator states
-  const projectBasePrice = project?.minPrice || 12400000;
-  const [downPaymentPercent, setDownPaymentPercent] = useState(20);
-  const [loanTenureYears, setLoanTenureYears] = useState(20);
-  const [interestRatePercent, setInterestRatePercent] = useState(8.5);
-
-  // Calculate EMI
-  const loanAmount = Math.max(0, projectBasePrice * (1 - downPaymentPercent / 100));
-  const monthlyRate = interestRatePercent / 12 / 100;
-  const totalMonths = loanTenureYears * 12;
-  const calculatedEmi = monthlyRate > 0
-    ? Math.round((loanAmount * monthlyRate * Math.pow(1 + monthlyRate, totalMonths)) / (Math.pow(1 + monthlyRate, totalMonths) - 1))
-    : 0;
 
   if (!project) {
     return (
@@ -174,10 +159,17 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="px-2.5 py-1 bg-emerald-50 text-[#18A67D] font-bold text-xs rounded-md border border-emerald-100 flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  RERA Registered: {project.reraNumber || 'UPRERAPRJ8821'}
-                </span>
+                {project.reraNumber ? (
+                  <span className="px-2.5 py-1 bg-emerald-50 text-[#18A67D] font-bold text-xs rounded-md border border-emerald-100 flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    RERA Registered: {project.reraNumber}
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-1 bg-slate-50 text-slate-500 font-bold text-xs rounded-md border border-slate-200 flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    RERA details awaited
+                  </span>
+                )}
                 <span className="px-2.5 py-1 bg-blue-50 text-blue-700 font-bold text-xs rounded-md border border-blue-100">
                   {project.status}
                 </span>
@@ -209,7 +201,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                 {project.priceFormatted}
               </div>
               <div className="text-xs text-slate-500 font-medium mt-0.5">
-                {project.pricePerSqFt || '₹ 7,200 / sqft'} • {project.bhkConfig}
+                {project.pricePerSqFt ? `${project.pricePerSqFt} • ` : ''}{project.bhkConfig}
               </div>
             </div>
           </div>
@@ -261,7 +253,9 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
             <div className="space-y-4">
               <h3 className="font-bold text-[#0F2A43] text-base border-b border-[#F1F5F9] pb-3 flex items-center justify-between">
                 <span>Project Snapshot</span>
-                <span className="text-xs font-normal text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">RERA Approved</span>
+                {project.reraNumber && (
+                  <span className="text-xs font-normal text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">RERA Approved</span>
+                )}
               </h3>
 
               <div className="space-y-3.5 text-xs sm:text-sm">
@@ -286,7 +280,9 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                     <Building2 className="w-4 h-4 text-slate-400" />
                     Project Size
                   </span>
-                  <span className="font-bold text-[#0F2A43]">{project.totalAreaAcres || '15 Acres'} • {project.totalUnits || '280'} Units</span>
+                  <span className="font-bold text-[#0F2A43]">
+                    {project.totalAreaAcres || '—'}{project.totalUnits ? ` • ${project.totalUnits} Units` : ''}
+                  </span>
                 </div>
 
                 <div className="flex justify-between items-center py-1 border-b border-slate-100">
@@ -294,7 +290,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                     <Sparkles className="w-4 h-4 text-slate-400" />
                     Open Space
                   </span>
-                  <span className="font-bold text-[#18A67D]">{project.openSpacePercent || '75% Open Area'}</span>
+                  <span className="font-bold text-[#18A67D]">{project.openSpacePercent || '—'}</span>
                 </div>
 
                 <div className="flex justify-between items-center py-1 border-b border-slate-100">
@@ -326,7 +322,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
           </div>
         </div>
 
-        {/* Content Layout (Left: Details, Right: Sticky Inquiry & Calculator) */}
+        {/* Content Layout (Left: Details, Right: Sticky Inquiry) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Main Details Column */}
           <div className="lg:col-span-8 space-y-6">
@@ -526,7 +522,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
                   <span className="text-slate-400 block text-[11px] mb-0.5">Track Record</span>
                   <span className="font-bold text-slate-800 text-sm">
-                    {project.builderDeliveredProjects || 45}+ Projects
+                    {project.builderDeliveredProjects ? `${project.builderDeliveredProjects}+ Projects` : '—'}
                   </span>
                 </div>
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
@@ -542,7 +538,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
 
           </div>
 
-          {/* Right Sidebar: Inquiry Form & EMI Calculator */}
+          {/* Right Sidebar: Inquiry Form */}
           <div className="lg:col-span-4 space-y-6">
             
             {/* Inquiry Form */}
@@ -641,62 +637,6 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                   </div>
                 </form>
               )}
-            </div>
-
-            {/* Quick Loan EMI Calculator */}
-            <div className="bg-white rounded-2xl p-6 border border-[#E2E8F0] shadow-xs space-y-4">
-              <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-3">
-                <h3 className="font-bold text-[#0F2A43] text-sm flex items-center gap-1.5">
-                  <Calculator className="w-4 h-4 text-[#18A67D]" />
-                  Home Loan EMI Estimator
-                </h3>
-              </div>
-
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-center">
-                <div className="text-xs text-[#64748B] font-medium">Estimated Monthly EMI</div>
-                <div className="text-2xl font-extrabold text-[#0F2A43] mt-0.5">
-                  ₹ {calculatedEmi.toLocaleString('en-IN')} <span className="text-xs font-normal text-slate-500">/ mo</span>
-                </div>
-                <div className="text-[11px] text-slate-400 mt-1">
-                  Loan: ₹ {(loanAmount / 100000).toFixed(1)} Lacs @ {interestRatePercent}% for {loanTenureYears} yrs
-                </div>
-              </div>
-
-              <div className="space-y-3 text-xs">
-                <div>
-                  <div className="flex justify-between text-slate-600 font-medium mb-1">
-                    <span>Down Payment: {downPaymentPercent}%</span>
-                    <span className="font-bold text-slate-800">
-                      ₹ {((projectBasePrice * downPaymentPercent) / 10000000).toFixed(2)} Cr
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min="10"
-                    max="50"
-                    step="5"
-                    value={downPaymentPercent}
-                    onChange={(e) => setDownPaymentPercent(Number(e.target.value))}
-                    className="w-full accent-[#18A67D] cursor-pointer"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex justify-between text-slate-600 font-medium mb-1">
-                    <span>Tenure: {loanTenureYears} Years</span>
-                    <span className="font-bold text-slate-800">{loanTenureYears * 12} Months</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="5"
-                    max="30"
-                    step="1"
-                    value={loanTenureYears}
-                    onChange={(e) => setLoanTenureYears(Number(e.target.value))}
-                    className="w-full accent-[#18A67D] cursor-pointer"
-                  />
-                </div>
-              </div>
             </div>
 
           </div>

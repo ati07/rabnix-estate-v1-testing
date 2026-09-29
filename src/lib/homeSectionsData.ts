@@ -49,6 +49,11 @@ export interface FeaturedProjectItem {
   nearbyLandmarks?: ProjectNearby[];
   builderExperience?: string;
   builderDeliveredProjects?: number;
+  // Submission & moderation (builder-submitted projects). Curated catalog
+  // entries are implicitly 'approved'.
+  submissionStatus?: 'approved' | 'pending' | 'rejected' | 'under_review';
+  rejectionReason?: string;
+  submittedByUserId?: string;
 }
 
 export interface AgentReview {

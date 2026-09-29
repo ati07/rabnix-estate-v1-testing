@@ -147,6 +147,9 @@ export function serializeFeaturedProject(p: DbFeaturedProject): FeaturedProjectI
     nearbyLandmarks: (p.nearbyLandmarks as unknown as ProjectNearby[]) ?? undefined,
     builderExperience: p.builderExperience ?? undefined,
     builderDeliveredProjects: p.builderDeliveredProjects ?? undefined,
+    submissionStatus: p.submissionStatus as FeaturedProjectItem['submissionStatus'],
+    rejectionReason: p.rejectionReason ?? undefined,
+    submittedByUserId: p.submittedByUserId ?? undefined,
   };
 }
 

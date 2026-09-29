@@ -48,10 +48,11 @@ model User {
   freeListingsUsed Int     @default(0)
   createdAt       DateTime @default(now())
 
-  properties      Property[]        @relation("PostedProperties")
-  inquiriesSent   Inquiry[]         @relation("BuyerInquiries")
-  inquiriesRecv   Inquiry[]         @relation("SellerInquiries")
-  subscriptions   Subscription[]
+  properties       Property[]         @relation("PostedProperties")
+  submittedProjects FeaturedProject[] @relation("SubmittedProjects")
+  inquiriesSent    Inquiry[]          @relation("BuyerInquiries")
+  inquiriesRecv    Inquiry[]          @relation("SellerInquiries")
+  subscriptions    Subscription[]
 
   @@index([role])
   @@index([isPreferredAgent])
@@ -265,10 +266,20 @@ model FeaturedProject {
   nearbyLandmarks          Json?    // ProjectNearby[]
   builderExperience        String?
   builderDeliveredProjects Int?
+  // --- Submission & moderation (Option C: builders submit, admins approve) ---
+  // submissionStatus defaults to "approved" so curated/seeded catalog projects
+  // are live immediately. Builder submissions via POST /api/projects explicitly
+  // start "pending" and only surface publicly once an admin approves them.
+  submissionStatus         String   @default("approved") // approved | pending | rejected | under_review
+  rejectionReason          String?
+  submittedByUserId        String?
+  submittedByUser          User?    @relation("SubmittedProjects", fields: [submittedByUserId], references: [id], onDelete: SetNull)
   createdAt                DateTime @default(now())
 
   @@index([city])
   @@index([section])
+  @@index([submissionStatus])
+  @@index([submittedByUserId])
 }
 
 // NOTE: Preferred Agents are no longer a standalone catalog table. They are

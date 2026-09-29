@@ -122,6 +122,7 @@ import {
 } from '@/lib/types';
 import { CITIES_DATA } from '@/lib/realEstateData';
 import { formatIndianCurrency } from '@/lib/formatters';
+import type { FeaturedProjectItem } from '@/lib/homeSectionsData';
 
 // --- Billing (listing plans) ---
 interface BillingPlan {
@@ -225,10 +226,38 @@ export default function UserDashboardPage() {
 
   // Sidebar navigation tabs
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'upload' | 'listings' | 'graphs' | 'appearance' | 'inquiries' | 'shortlist' | 'billing' |
+    'overview' | 'upload' | 'listings' | 'projects' | 'graphs' | 'appearance' | 'inquiries' | 'shortlist' | 'billing' |
     'admin_moderation' | 'admin_users' | 'admin_activity' | 'admin_trends'
   >('overview');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // My Projects (builder-submitted projects, Option C). Builders submit at
+  // /post-project; this shows their submissions and moderation status.
+  const isBuilderAccount = user?.role === 'builder' || user?.role === 'admin';
+  const [myProjects, setMyProjects] = useState<FeaturedProjectItem[]>([]);
+  const loadMyProjects = React.useCallback(async () => {
+    if (!isBuilderAccount) { setMyProjects([]); return; }
+    try {
+      const res = await fetch('/api/projects?mine=1', { cache: 'no-store', credentials: 'same-origin' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data?.success && Array.isArray(data.projects)) setMyProjects(data.projects);
+    } catch { /* non-fatal */ }
+  }, [isBuilderAccount]);
+
+  useEffect(() => { loadMyProjects(); }, [loadMyProjects]);
+
+  // Deep-link support: /dashboard?tab=projects (from the post-project success page).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const tab = new URLSearchParams(window.location.search).get('tab');
+    if (tab === 'projects' && isBuilderAccount) setActiveTab('projects');
+    else if (tab === 'billing') setActiveTab('billing');
+  }, [isBuilderAccount]);
+
+  const deleteMyProject = async (id: string) => {
+    setMyProjects((prev) => prev.filter((p) => p.id !== id));
+    await fetch(`/api/projects/${id}`, { method: 'DELETE', credentials: 'same-origin' }).catch(() => {});
+  };
 
   // Admin filter states
   const [adminUserSearch, setAdminUserSearch] = useState('');
@@ -1134,6 +1163,29 @@ export default function UserDashboardPage() {
                 {myPostedProperties.length}
               </span>
             </button>
+
+            {isBuilderAccount && (
+              <button
+                id="sidebar-tab-projects"
+                onClick={() => {
+                  setActiveTab('projects');
+                  setMobileSidebarOpen(false);
+                }}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+                  activeTab === 'projects'
+                    ? 'bg-[#E7F6F1] text-[#0E7C5D] font-black'
+                    : 'hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#0F2A43]'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Layers className="w-4 h-4 text-[#18A67D]" />
+                  <span>My Projects</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 text-[#0F2A43]">
+                  {myProjects.length}
+                </span>
+              </button>
+            )}
 
             <button
               id="sidebar-tab-graphs"
@@ -2166,6 +2218,131 @@ export default function UserDashboardPage() {
                           </div>
                         </div>
 
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+            </div>
+          )}
+
+          {/* TAB: MY PROJECTS (builders/admin only) */}
+          {activeTab === 'projects' && isBuilderAccount && (
+            <div className="space-y-6 animate-in fade-in">
+
+              <div className="bg-white rounded-2xl p-6 border border-[#E2E8F0] shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg sm:text-xl font-extrabold text-[#0F2A43]">
+                      My Projects ({myProjects.length})
+                    </h2>
+                    <p className="text-xs text-[#64748B]">
+                      Submit new developments and track their approval status. Projects go live after admin review.
+                    </p>
+                  </div>
+
+                  <Link
+                    href="/post-project"
+                    className="px-4 py-2 bg-[#18A67D] hover:bg-[#0E7C5D] text-white text-xs font-bold rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Submit a Project</span>
+                  </Link>
+                </div>
+              </div>
+
+              {myProjects.length === 0 ? (
+                <div className="bg-white rounded-2xl p-12 text-center border border-[#E2E8F0] space-y-4">
+                  <div className="w-14 h-14 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto">
+                    <Layers className="w-7 h-7" />
+                  </div>
+                  <h3 className="font-extrabold text-base text-[#0F2A43]">No Projects Yet</h3>
+                  <p className="text-xs text-[#64748B] max-w-sm mx-auto">
+                    You haven&apos;t submitted any projects. List your development so buyers can discover it in the projects catalog.
+                  </p>
+                  <Link
+                    href="/post-project"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#18A67D] hover:bg-[#0E7C5D] text-white text-xs font-bold rounded-xl transition-all cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>Submit Your First Project</span>
+                  </Link>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4">
+                  {myProjects.map((proj) => {
+                    const status = proj.submissionStatus || 'approved';
+                    const statusBadge =
+                      status === 'approved'
+                        ? { label: 'Live & Approved', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: <CheckCircle2 className="w-3.5 h-3.5" /> }
+                        : status === 'pending'
+                        ? { label: 'Pending Review', cls: 'bg-amber-50 text-amber-700 border-amber-200', icon: <Clock className="w-3.5 h-3.5" /> }
+                        : status === 'under_review'
+                        ? { label: 'Under Review', cls: 'bg-sky-50 text-sky-700 border-sky-200', icon: <AlertCircle className="w-3.5 h-3.5" /> }
+                        : { label: 'Rejected', cls: 'bg-rose-50 text-rose-700 border-rose-200', icon: <AlertCircle className="w-3.5 h-3.5" /> };
+
+                    return (
+                      <div key={proj.id} className="bg-white rounded-2xl border border-[#E2E8F0] shadow-xs overflow-hidden">
+                        <div className="flex flex-col sm:flex-row">
+                          <div className="sm:w-48 h-40 sm:h-auto shrink-0 bg-slate-100 relative">
+                            {proj.image ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={proj.image} alt={proj.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                <Layers className="w-8 h-8" />
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex-1 p-4 sm:p-5 space-y-3">
+                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <h3 className="font-extrabold text-base text-[#0F2A43] truncate">{proj.name}</h3>
+                                <p className="text-xs text-[#64748B] flex items-center gap-1 mt-0.5">
+                                  <MapPin className="w-3.5 h-3.5" />
+                                  {proj.locality}, {proj.city}
+                                </p>
+                                {proj.priceFormatted && (
+                                  <p className="text-sm font-bold text-[#18A67D] mt-1">{proj.priceFormatted}</p>
+                                )}
+                              </div>
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border whitespace-nowrap ${statusBadge.cls}`}>
+                                {statusBadge.icon}
+                                {statusBadge.label}
+                              </span>
+                            </div>
+
+                            {status === 'rejected' && proj.rejectionReason && (
+                              <div className="text-xs bg-rose-50 border border-rose-200 text-rose-700 rounded-lg px-3 py-2 flex items-start gap-1.5">
+                                <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                                <span><strong>Feedback:</strong> {proj.rejectionReason}</span>
+                              </div>
+                            )}
+                            {status === 'pending' && (
+                              <p className="text-xs text-[#64748B]">Awaiting admin approval. You&apos;ll see it in the catalog once approved.</p>
+                            )}
+
+                            <div className="flex items-center gap-2 pt-1">
+                              <Link
+                                href={`/projects/${proj.id}`}
+                                target="_blank"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#0F2A43] border border-[#CBD5E1] rounded-lg hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                                {status === 'approved' ? 'View Live' : 'Preview'}
+                              </Link>
+                              <button
+                                onClick={() => deleteMyProject(proj.id)}
+                                className="ml-auto p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                title="Delete Project"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     );
                   })}

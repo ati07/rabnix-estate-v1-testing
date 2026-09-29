@@ -360,6 +360,17 @@ export function Navbar({
                       <span>Post a New Listing (FREE)</span>
                     </Link>
 
+                    {(user.role === 'builder' || user.role === 'admin') && (
+                      <Link
+                        href="/post-project"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 text-[#172033] hover:bg-[#F8FAFC] hover:text-[#18A67D] rounded-lg transition-colors font-semibold"
+                      >
+                        <Building2 className="w-4 h-4 text-[#18A67D]" />
+                        <span>Submit a Project</span>
+                      </Link>
+                    )}
+
                     <Link
                       href="/auth?mode=signin"
                       onClick={() => setIsUserMenuOpen(false)}
@@ -545,6 +556,16 @@ export function Navbar({
               <span>Ask Rabnix Genie AI Assistant</span>
               <Sparkles className="w-4 h-4 text-[#22C39A]" />
             </button>
+            {isAuthenticated && (user?.role === 'builder' || user?.role === 'admin') && (
+              <Link
+                href="/post-project"
+                onClick={() => setMobileMenuOpen(false)}
+                className="w-full flex items-center justify-between p-2.5 bg-[#E7F6F1] text-[#0E7C5D] rounded-lg font-bold text-xs uppercase tracking-wider border border-[#18A67D]/20"
+              >
+                <span>Submit a Project</span>
+                <Building2 className="w-4 h-4" />
+              </Link>
+            )}
           </div>
         </div>
       )}

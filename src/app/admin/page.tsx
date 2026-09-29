@@ -60,6 +60,7 @@ import {
 import { useAuth } from '@/lib/authContext';
 import { useProperties } from '@/lib/propertyContext';
 import { Property, VerificationStatus, UserRole, UserProfile, SystemActivityLog } from '@/lib/types';
+import type { FeaturedProjectItem } from '@/lib/homeSectionsData';
 import {
   AdminActivityTrendChart,
   AdminUserBreakdownPieChart,
@@ -101,12 +102,51 @@ export default function AdminPortalPage() {
   } = useProperties();
 
   // Navigation Tabs in Admin Suite
-  const [activeTab, setActiveTab] = useState<'overview' | 'moderation' | 'users' | 'agents' | 'activity' | 'trends' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'moderation' | 'projects' | 'users' | 'agents' | 'activity' | 'trends' | 'settings'>('overview');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Moderation Filters
   const [modFilterStatus, setModFilterStatus] = useState<VerificationStatus | 'all'>('all');
   const [modSearchQuery, setModSearchQuery] = useState('');
+
+  // Project moderation (builder-submitted projects, Option C). Fetched directly
+  // here since projects aren't part of the property context.
+  const [projects, setProjects] = useState<FeaturedProjectItem[]>([]);
+  const [projFilterStatus, setProjFilterStatus] = useState<'all' | 'pending' | 'under_review' | 'approved' | 'rejected'>('all');
+  const [projSearchQuery, setProjSearchQuery] = useState('');
+  const [rejectionModalProject, setRejectionModalProject] = useState<FeaturedProjectItem | null>(null);
+  const [projRejectionReason, setProjRejectionReason] = useState('Project details or RERA registration could not be verified.');
+
+  const loadProjects = React.useCallback(async () => {
+    try {
+      const res = await fetch('/api/projects?scope=all', { cache: 'no-store', credentials: 'same-origin' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data?.success && Array.isArray(data.projects)) setProjects(data.projects);
+    } catch { /* non-fatal */ }
+  }, []);
+
+  useEffect(() => {
+    if (isAuthReady && user?.role === 'admin') loadProjects();
+  }, [isAuthReady, user?.role, loadProjects]);
+
+  const updateProjectStatus = async (
+    id: string,
+    submissionStatus: 'approved' | 'pending' | 'under_review' | 'rejected',
+    reason?: string,
+  ) => {
+    setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, submissionStatus, rejectionReason: submissionStatus === 'rejected' ? reason : undefined } : p)));
+    await fetch(`/api/projects/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ submissionStatus, rejectionReason: reason }),
+    }).catch(() => {});
+  };
+
+  const deleteProject = async (id: string) => {
+    setProjects((prev) => prev.filter((p) => p.id !== id));
+    await fetch(`/api/projects/${id}`, { method: 'DELETE', credentials: 'same-origin' }).catch(() => {});
+  };
   const [selectedPropertyModal, setSelectedPropertyModal] = useState<Property | null>(null);
   const [rejectionModalProperty, setRejectionModalProperty] = useState<Property | null>(null);
   const [rejectionReason, setRejectionReason] = useState('State RERA certificate could not be verified on the official real estate regulatory portal.');
@@ -172,6 +212,31 @@ export default function AdminPortalPage() {
       return true;
     });
   }, [properties, modFilterStatus, modSearchQuery]);
+
+  // Project moderation metrics & filtering (Option C).
+  const projStatusOf = (p: FeaturedProjectItem) => p.submissionStatus || 'approved';
+  const projPendingCount = projects.filter((p) => projStatusOf(p) === 'pending').length;
+  const projUnderReviewCount = projects.filter((p) => projStatusOf(p) === 'under_review').length;
+  const projApprovedCount = projects.filter((p) => projStatusOf(p) === 'approved').length;
+  const projRejectedCount = projects.filter((p) => projStatusOf(p) === 'rejected').length;
+  const projSubmittedCount = projects.filter((p) => p.submittedByUserId).length;
+
+  const filteredProjects = useMemo(() => {
+    return projects.filter((p) => {
+      if (projFilterStatus !== 'all' && projStatusOf(p) !== projFilterStatus) return false;
+      if (projSearchQuery.trim()) {
+        const q = projSearchQuery.toLowerCase();
+        return (
+          p.name.toLowerCase().includes(q) ||
+          p.locality.toLowerCase().includes(q) ||
+          p.city.toLowerCase().includes(q) ||
+          p.builderName.toLowerCase().includes(q) ||
+          (p.reraNumber ? p.reraNumber.toLowerCase().includes(q) : false)
+        );
+      }
+      return true;
+    });
+  }, [projects, projFilterStatus, projSearchQuery]);
 
   // Filtered Users
   const filteredUsers = useMemo(() => {
@@ -532,7 +597,35 @@ export default function AdminPortalPage() {
               )}
             </button>
 
-            {/* 3. User & Block Control */}
+            {/* 3. Project Submissions (Option C) */}
+            <button
+              id="admin-sidebar-projects"
+              onClick={() => {
+                setActiveTab('projects');
+                setMobileSidebarOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+                activeTab === 'projects'
+                  ? 'bg-[#0F2A43] text-white font-black shadow-xs'
+                  : 'hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#0F2A43]'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Building2 className={`w-4 h-4 ${activeTab === 'projects' ? 'text-[#22C39A]' : 'text-sky-600'}`} />
+                <span>Project Submissions</span>
+              </div>
+              {(projPendingCount + projUnderReviewCount) > 0 && (
+                <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${
+                  activeTab === 'projects'
+                    ? 'bg-amber-400 text-[#0F2A43]'
+                    : 'bg-amber-100 text-amber-900 animate-pulse'
+                }`}>
+                  {projPendingCount + projUnderReviewCount}
+                </span>
+              )}
+            </button>
+
+            {/* 4. User & Block Control */}
             <button
               id="admin-sidebar-users"
               onClick={() => {
@@ -1245,6 +1338,172 @@ export default function AdminPortalPage() {
               )}
             </div>
 
+          </div>
+        )}
+
+        {/* ---------------------------------------------------- */}
+        {/* TAB: PROJECT SUBMISSIONS (Option C)                  */}
+        {/* ---------------------------------------------------- */}
+        {activeTab === 'projects' && (
+          <div className="space-y-5 animate-in fade-in duration-200">
+
+            {/* Filter subtabs + search */}
+            <div className="bg-white p-4 rounded-2xl border border-[#E2E8F0] shadow-xs space-y-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {[
+                    { id: 'all', label: `All Projects (${projects.length})` },
+                    { id: 'pending', label: `Pending (${projPendingCount})` },
+                    { id: 'under_review', label: `Under Review (${projUnderReviewCount})` },
+                    { id: 'approved', label: `Live (${projApprovedCount})` },
+                    { id: 'rejected', label: `Rejected (${projRejectedCount})` },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setProjFilterStatus(tab.id as any)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        projFilterStatus === tab.id
+                          ? 'bg-[#0F2A43] text-white shadow-xs'
+                          : 'bg-[#F8FAFC] border border-[#E2E8F0] text-[#64748B] hover:text-[#0F2A43]'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={loadProjects}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#F8FAFC] border border-[#E2E8F0] text-[#64748B] hover:text-[#0F2A43] flex items-center gap-1.5 cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" /> Refresh
+                </button>
+              </div>
+              <div className="relative">
+                <Search className="w-4 h-4 text-[#94A3B8] absolute left-3 top-3" />
+                <input
+                  type="text"
+                  value={projSearchQuery}
+                  onChange={(e) => setProjSearchQuery(e.target.value)}
+                  placeholder="Search projects by name, builder, locality, city, or RERA number..."
+                  className="w-full pl-9 pr-4 py-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs sm:text-sm font-medium outline-none focus:bg-white focus:border-[#18A67D]"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between text-xs font-extrabold text-[#0F2A43]">
+              <span>PROJECT SUBMISSIONS ({filteredProjects.length})</span>
+              <span className="text-[#64748B]">{projSubmittedCount} builder-submitted · {projects.length - projSubmittedCount} curated</span>
+            </div>
+
+            {filteredProjects.length === 0 ? (
+              <div className="bg-white p-12 rounded-2xl border border-[#E2E8F0] text-center space-y-3">
+                <Building2 className="w-12 h-12 text-[#18A67D] mx-auto" />
+                <h3 className="text-base font-bold text-[#0F2A43]">No projects in this queue</h3>
+                <p className="text-xs text-[#64748B]">Builder submissions awaiting review will appear here.</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredProjects.map((proj) => {
+                  const status = projStatusOf(proj);
+                  return (
+                    <div key={proj.id} className="bg-white rounded-2xl border border-[#E2E8F0] p-5 shadow-xs hover:shadow-md transition-all space-y-4">
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-[#F1F5F9] pb-4">
+                        <div className="flex items-start gap-3.5">
+                          <div className="w-20 h-16 rounded-xl overflow-hidden bg-slate-100 shrink-0 relative">
+                            {proj.image ? (
+                              <Image src={proj.image} alt={proj.name} fill className="object-cover" referrerPolicy="no-referrer" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center"><Building2 className="w-6 h-6 text-slate-400" /></div>
+                            )}
+                          </div>
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                status === 'approved' ? 'bg-emerald-100 text-emerald-800'
+                                : status === 'pending' ? 'bg-amber-100 text-amber-800'
+                                : status === 'under_review' ? 'bg-blue-100 text-blue-800'
+                                : 'bg-rose-100 text-rose-800'
+                              }`}>
+                                {status.replace('_', ' ')}
+                              </span>
+                              <span className="text-xs font-black text-[#0E7C5D]">{proj.priceFormatted}</span>
+                              <span className="text-[11px] bg-slate-100 px-2 py-0.5 rounded text-slate-700 font-bold">{proj.status}</span>
+                              {!proj.submittedByUserId && (
+                                <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded text-slate-500 font-bold uppercase">Curated</span>
+                              )}
+                            </div>
+                            <h3 className="text-sm sm:text-base font-bold text-[#0F2A43] mt-1">{proj.name}</h3>
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-[#64748B] mt-0.5">
+                              <MapPin className="w-3.5 h-3.5 text-[#18A67D]" />
+                              <span>{proj.locality}, {proj.city}</span>
+                              {proj.reraNumber && (
+                                <span className="font-mono text-[11px] bg-slate-100 px-2 py-0.5 rounded text-[#0F2A43] font-bold">RERA: {proj.reraNumber}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-xs space-y-1 bg-[#F8FAFC] p-3 rounded-xl border border-[#E2E8F0] min-w-56">
+                          <div className="text-[10px] font-bold text-[#64748B] uppercase">Builder / Developer</div>
+                          <div className="font-bold text-[#0F2A43]">{proj.builderName}</div>
+                          <div className="text-[#64748B]">{proj.bhkConfig || '—'} · {proj.totalUnits ? `${proj.totalUnits} units` : 'units n/a'}</div>
+                        </div>
+                      </div>
+
+                      {proj.rejectionReason && status === 'rejected' && (
+                        <div className="p-2 rounded bg-rose-50 border border-rose-200 text-rose-800 text-[11px] font-medium">
+                          {proj.rejectionReason}
+                        </div>
+                      )}
+
+                      <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                        <Link
+                          href={`/projects/${proj.id}`}
+                          target="_blank"
+                          className="px-3 py-1.5 bg-[#F1F5F9] hover:bg-[#E2E8F0] text-[#0F2A43] rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
+                        >
+                          <span>Preview Page</span>
+                          <ArrowUpRight className="w-3.5 h-3.5" />
+                        </Link>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {status !== 'under_review' && (
+                            <button
+                              onClick={() => { updateProjectStatus(proj.id, 'under_review'); showBanner(`Project "${proj.name}" moved to Under Review.`); }}
+                              className="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              Mark Under Review
+                            </button>
+                          )}
+                          {status !== 'rejected' && (
+                            <button
+                              onClick={() => { setProjRejectionReason('Project details or RERA registration could not be verified.'); setRejectionModalProject(proj); }}
+                              className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              Reject
+                            </button>
+                          )}
+                          {status !== 'approved' && (
+                            <button
+                              onClick={() => { updateProjectStatus(proj.id, 'approved'); showBanner(`Approved "${proj.name}". It is now live in the catalog.`); }}
+                              className="px-4 py-2 bg-[#18A67D] hover:bg-[#0E7C5D] text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <Check className="w-4 h-4" />
+                              <span>Approve & Publish</span>
+                            </button>
+                          )}
+                          <button
+                            onClick={() => { deleteProject(proj.id); showBanner(`Deleted project "${proj.name}".`); }}
+                            className="px-3 py-1.5 text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -2201,6 +2460,69 @@ export default function AdminPortalPage() {
                   type="submit"
                   className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md"
                 >
+                  Confirm Rejection
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Project Rejection Modal (Option C) */}
+      {rejectionModalProject && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b pb-3">
+              <div className="flex items-center gap-2 text-rose-700 font-extrabold text-base">
+                <XCircle className="w-5 h-5" />
+                <span>Reject Project Submission</span>
+              </div>
+              <button onClick={() => setRejectionModalProject(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-[#64748B]">
+              Provide feedback for <strong>{rejectionModalProject.name}</strong>. The builder will see this in their dashboard under My Projects.
+            </p>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                updateProjectStatus(rejectionModalProject.id, 'rejected', projRejectionReason);
+                showBanner(`Project "${rejectionModalProject.name}" rejected with feedback sent to the builder.`);
+                setRejectionModalProject(null);
+              }}
+              className="space-y-4"
+            >
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-[#172033] uppercase">Select Common Rejection Reason</label>
+                <select
+                  onChange={(e) => setProjRejectionReason(e.target.value)}
+                  className="w-full p-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs font-medium outline-none"
+                >
+                  <option value="Project details or RERA registration could not be verified.">RERA registration could not be verified</option>
+                  <option value="Insufficient project imagery or watermarked / low-resolution photos.">Poor / insufficient project imagery</option>
+                  <option value="Builder credentials or marketing authorisation could not be confirmed.">Builder credentials unconfirmed</option>
+                  <option value="Pricing or configuration details are incomplete or inconsistent.">Incomplete pricing / configuration</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-[#172033] uppercase">Custom Feedback Note to Builder</label>
+                <textarea
+                  rows={3}
+                  value={projRejectionReason}
+                  onChange={(e) => setProjRejectionReason(e.target.value)}
+                  className="w-full p-3 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-xs outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setRejectionModalProject(null)} className="px-4 py-2 rounded-xl border text-xs font-bold text-[#0F2A43] hover:bg-[#F8FAFC]">
+                  Cancel
+                </button>
+                <button type="submit" className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md">
                   Confirm Rejection
                 </button>
               </div>
