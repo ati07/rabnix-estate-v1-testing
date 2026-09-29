@@ -2323,6 +2323,12 @@ export default function UserDashboardPage() {
                             {status === 'pending' && (
                               <p className="text-xs text-[#64748B]">Awaiting admin approval. You&apos;ll see it in the catalog once approved.</p>
                             )}
+                            {status === 'approved' && (
+                              <p className="text-xs text-[#64748B]">Approved &amp; live. Editing a live project sends it back to review until an admin re-approves.</p>
+                            )}
+                            {status === 'under_review' && (
+                              <p className="text-xs text-[#64748B]">Under review after your recent edits. It&apos;ll return to the catalog once an admin re-approves.</p>
+                            )}
 
                             <div className="flex items-center gap-2 pt-1">
                               <Link

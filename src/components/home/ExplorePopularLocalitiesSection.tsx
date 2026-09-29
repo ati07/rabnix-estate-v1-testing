@@ -3,7 +3,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ExternalLink, Star, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import { ExternalLink, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { getPopularLocalitiesForCity, PopularLocalityCardItem } from '@/lib/homeSectionsData';
 
 interface ExplorePopularLocalitiesSectionProps {
@@ -109,17 +109,6 @@ export function ExplorePopularLocalitiesSection({
                   <p className="text-xs text-[#64748B] mt-1 font-medium">
                     {loc.priceRangeSqFt}
                   </p>
-
-                  {/* Rating */}
-                  <div className="flex items-center gap-1.5 mt-2 text-xs font-semibold text-[#172033]">
-                    <span className="flex items-center gap-0.5 bg-[#FEF3C7] text-[#D97706] px-1.5 py-0.5 rounded text-[11px] font-bold">
-                      <span>{loc.rating}</span>
-                      <Star className="w-3 h-3 fill-current" />
-                    </span>
-                    <span className="text-[#64748B] text-[11px]">
-                      {loc.reviewsCount} Reviews
-                    </span>
-                  </div>
 
                   {/* Circular Image Thumbnail */}
                   <div className="mt-3 flex justify-center">

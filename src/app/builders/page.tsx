@@ -10,8 +10,7 @@ import {
   Building2, 
   MapPin, 
   Search, 
-  ArrowRight, 
-  Star, 
+  ArrowRight,
   SlidersHorizontal,
   ChevronRight,
   ExternalLink,
@@ -234,11 +233,6 @@ function BuildersDirectoryContent() {
                       <span className="bg-[#18A67D] text-white text-[10px] font-extrabold px-2.5 py-0.5 rounded-full shadow-sm flex items-center gap-1">
                         <ShieldCheck className="w-3 h-3" />
                         <span>{builder.badge}</span>
-                      </span>
-
-                      <span className="bg-black/60 backdrop-blur-xs text-amber-400 text-xs font-black px-2.5 py-0.5 rounded flex items-center gap-1">
-                        <Star className="w-3.5 h-3.5 fill-current" />
-                        <span>{builder.rating}</span>
                       </span>
                     </div>
 

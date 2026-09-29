@@ -10,8 +10,7 @@ import {
   ShieldCheck, 
   CheckCircle2, 
   Heart, 
-  Share2, 
-  Phone, 
+  Share2,
   Mail, 
   Calendar, 
   Layers, 
@@ -311,13 +310,6 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
               >
                 Request Site Visit & Price Sheet
               </a>
-              <a
-                href={`tel:+919415078901`}
-                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-[#0F2A43] text-center font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-1.5"
-              >
-                <Phone className="w-3.5 h-3.5 text-[#18A67D]" />
-                Call Project Sales Desk
-              </a>
             </div>
           </div>
         </div>
@@ -491,19 +483,25 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
             <div className="bg-white rounded-2xl p-6 border border-[#E2E8F0] shadow-xs space-y-4">
               <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-slate-100 relative overflow-hidden border border-slate-200">
-                    <Image
-                      src={project.builderLogo || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?auto=format&fit=crop&w=200&q=80'}
-                      alt={project.builderName}
-                      fill
-                      className="object-cover"
-                    />
+                  <div className="w-12 h-12 rounded-xl bg-slate-100 relative overflow-hidden border border-slate-200 flex items-center justify-center">
+                    {project.builderLogo ? (
+                      <Image
+                        src={project.builderLogo}
+                        alt={project.builderName}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <span className="text-lg font-extrabold text-[#0F2A43]">
+                        {(project.builderName || '?').charAt(0).toUpperCase()}
+                      </span>
+                    )}
                   </div>
                   <div>
                     <h3 className="font-bold text-[#0F2A43] text-base">{project.builderName}</h3>
-                    <p className="text-xs text-[#64748B]">
-                      {project.builderExperience || 'Leading Real Estate Developer'}
-                    </p>
+                    {project.builderExperience && (
+                      <p className="text-xs text-[#64748B]">{project.builderExperience}</p>
+                    )}
                   </div>
                 </div>
 
@@ -566,7 +564,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                   <CheckCircle2 className="w-10 h-10 text-[#18A67D] mx-auto" />
                   <div className="text-sm font-bold text-emerald-900">Inquiry Received!</div>
                   <p className="text-xs text-emerald-800 leading-relaxed">
-                    Thank you, {inquiryName}. The official project representative for <strong>{project.name}</strong> will contact you at <strong>{inquiryPhone}</strong> within 15 minutes.
+                    Thank you, {inquiryName}. The project team for <strong>{project.name}</strong> will reach out to you at <strong>{inquiryPhone}</strong> shortly.
                   </p>
                   <button
                     onClick={() => setIsInquirySubmitted(false)}

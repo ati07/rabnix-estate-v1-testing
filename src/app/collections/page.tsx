@@ -281,14 +281,10 @@ function CollectionsHubContent() {
                     </p>
 
                     {/* Metrics Grid */}
-                    <div className="grid grid-cols-2 gap-2 bg-[#F8FAFC] p-3 rounded-xl border border-[#E2E8F0] text-xs">
+                    <div className="bg-[#F8FAFC] p-3 rounded-xl border border-[#E2E8F0] text-xs">
                       <div>
                         <span className="text-[10px] text-[#94A3B8] font-bold block uppercase">Price Bracket</span>
                         <span className="font-extrabold text-[#0F2A43] text-xs">{col.avgPriceRange}</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-[#94A3B8] font-bold block uppercase">Expected Yield</span>
-                        <span className="font-extrabold text-[#0E7C5D] text-xs truncate block">{col.avgYield}</span>
                       </div>
                     </div>
 

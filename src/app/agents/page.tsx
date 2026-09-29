@@ -11,7 +11,6 @@ import {
   Search,
   ArrowRight,
   ChevronRight,
-  Star,
   Users,
   Phone,
   Sparkles,
@@ -25,7 +24,6 @@ function AgentsDirectoryContent() {
 
   const [selectedCity, setSelectedCity] = useState<string>(initialCity);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [minRating, setMinRating] = useState<number>(0);
 
   // Live agents from the API; seed with static data so first paint + offline still work.
   const [agents, setAgents] = useState<PreferredAgentItem[]>(HOME_PREFERRED_AGENTS);
@@ -43,9 +41,6 @@ function AgentsDirectoryContent() {
       if (selectedCity !== 'All' && a.city.toLowerCase() !== selectedCity.toLowerCase()) {
         return false;
       }
-      if (a.rating < minRating) {
-        return false;
-      }
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const areas = (a.areasServed || []).join(' ');
@@ -55,7 +50,7 @@ function AgentsDirectoryContent() {
       }
       return true;
     });
-  }, [agents, selectedCity, searchQuery, minRating]);
+  }, [agents, selectedCity, searchQuery]);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-between">
@@ -125,20 +120,12 @@ function AgentsDirectoryContent() {
             </div>
 
             {/* Stats Counter */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/15 text-xs">
+            <div className="grid grid-cols-2 gap-3 bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/15 text-xs">
               <div>
                 <span className="text-slate-400 block text-[10px] uppercase font-bold">Agents</span>
                 <span className="text-lg font-black text-white">{agents.length}+ Verified</span>
               </div>
               <div>
-                <span className="text-slate-400 block text-[10px] uppercase font-bold">Avg Rating</span>
-                <span className="text-lg font-black text-[#22C39A]">
-                  {agents.length
-                    ? (agents.reduce((s, a) => s + a.rating, 0) / agents.length).toFixed(1)
-                    : '—'}
-                </span>
-              </div>
-              <div className="col-span-2 sm:col-span-1">
                 <span className="text-slate-400 block text-[10px] uppercase font-bold">RERA Verified</span>
                 <span className="text-lg font-black text-amber-400">100% Vetted</span>
               </div>
@@ -174,18 +161,6 @@ function AgentsDirectoryContent() {
               </select>
             </div>
 
-            <div className="w-full sm:w-44 relative">
-              <Star className="w-4 h-4 text-amber-400 absolute left-3 top-3 pointer-events-none" />
-              <select
-                value={minRating}
-                onChange={(e) => setMinRating(Number(e.target.value))}
-                className="w-full pl-9 pr-4 py-2.5 bg-white/10 border border-white/20 rounded-xl text-xs font-bold text-white outline-none cursor-pointer focus:bg-[#0F2A43] focus:border-[#22C39A]"
-              >
-                <option value={0} className="bg-[#0F2A43] text-white">Any Rating</option>
-                <option value={4} className="bg-[#0F2A43] text-white">4.0+ Stars</option>
-                <option value={4.5} className="bg-[#0F2A43] text-white">4.5+ Stars</option>
-              </select>
-            </div>
           </div>
 
         </div>
@@ -247,9 +222,6 @@ function AgentsDirectoryContent() {
                       </span>
                     </div>
                   </div>
-                  <span className="bg-black/70 text-amber-400 text-xs font-black px-2 py-0.5 rounded flex items-center gap-1 shrink-0">
-                    <Star className="w-3.5 h-3.5 fill-current" /> {agent.rating}
-                  </span>
                 </div>
 
                 {/* Body */}

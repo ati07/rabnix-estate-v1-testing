@@ -90,13 +90,38 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       'totalAreaAcres', 'totalTowers', 'totalUnits', 'openSpacePercent', 'description',
       'highlights', 'amenities', 'builderExperience', 'builderDeliveredProjects',
     ];
+    let contentChanged = false;
     for (const key of editable) {
-      if (b[key] !== undefined) data[key] = b[key];
+      if (b[key] !== undefined) { data[key] = b[key]; contentChanged = true; }
     }
-    if (b.floorPlans !== undefined) data.floorPlans = b.floorPlans as unknown as object;
-    if (b.nearbyLandmarks !== undefined) data.nearbyLandmarks = b.nearbyLandmarks as unknown as object;
+    if (b.floorPlans !== undefined) { data.floorPlans = b.floorPlans as unknown as object; contentChanged = true; }
+    if (b.nearbyLandmarks !== undefined) { data.nearbyLandmarks = b.nearbyLandmarks as unknown as object; contentChanged = true; }
+
+    // When a builder edits their own already-approved (live) project, the changes
+    // must be re-moderated: send it back to review and take it out of the live
+    // catalog until an admin re-approves. Admin edits do not trigger re-review.
+    let sentToReview = false;
+    if (contentChanged && isOwner && !isAdmin && existing.submissionStatus === 'approved') {
+      data.submissionStatus = 'under_review';
+      data.rejectionReason = null;
+      sentToReview = true;
+    }
 
     const updated = await prisma.featuredProject.update({ where: { id }, data });
+
+    if (sentToReview) {
+      await prisma.activityLog.create({
+        data: {
+          action: 'project_created',
+          actorName: user.name,
+          actorRole: existing.submittedByUserId === user.id ? 'Builder' : 'User',
+          details: `Edited approved project "${existing.name}" — sent back to review pending re-approval.`,
+          targetTitle: existing.name,
+          targetId: existing.id,
+          severity: 'info',
+        },
+      });
+    }
     return NextResponse.json({ success: true, project: serializeFeaturedProject(updated) });
   } catch (err: any) {
     console.error('PATCH /api/projects/[id] error', err);

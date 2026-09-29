@@ -241,10 +241,6 @@ export default function SingleCollectionPage({ params }: { params: Promise<{ id:
                 <span className="text-xs text-slate-300 font-medium">Price Range:</span>
                 <span className="text-sm font-extrabold text-white">{collection.avgPriceRange}</span>
               </div>
-              <div className="flex items-center justify-between pb-3 border-b border-white/15">
-                <span className="text-xs text-slate-300 font-medium">Yield / Growth:</span>
-                <span className="text-xs font-extrabold text-[#22C39A] text-right">{collection.avgYield}</span>
-              </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-slate-300 font-medium">Available Units:</span>
                 <span className="text-xs font-bold text-amber-400">{matchingProperties.length} Properties</span>

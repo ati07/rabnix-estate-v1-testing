@@ -18,7 +18,6 @@ import {
   Clock,
   ArrowLeft,
   Check,
-  Star,
   UserCheck,
   MessageSquare,
   Bed,
@@ -198,10 +197,6 @@ export default function AgentDetailsPage({ params }: { params: Promise<{ id: str
                     <MapPin className="w-4 h-4 text-slate-400 mr-1.5 shrink-0" />
                     {agent.city}
                   </div>
-                  <div className="flex items-center text-amber-600 font-bold">
-                    <Star className="w-4 h-4 fill-amber-400 text-amber-400 mr-1" />
-                    {agent.rating || 4.9} ({(agent.reviews?.length || 24)} client reviews)
-                  </div>
                 </div>
               </div>
             </div>
@@ -230,7 +225,9 @@ export default function AgentDetailsPage({ params }: { params: Promise<{ id: str
             <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
               <div className="text-xs text-[#64748B] font-medium">Operating Since</div>
               <div className="text-lg sm:text-xl font-extrabold text-[#0F2A43] mt-0.5">
-                {agent.operatingSince || 2014} ({new Date().getFullYear() - (agent.operatingSince || 2014)} Yrs)
+                {agent.operatingSince
+                  ? `${agent.operatingSince} (${new Date().getFullYear() - agent.operatingSince} Yrs)`
+                  : '—'}
               </div>
             </div>
 
@@ -413,43 +410,6 @@ export default function AgentDetailsPage({ params }: { params: Promise<{ id: str
                 </div>
               )}
             </div>
-
-            {/* Client Reviews Section */}
-            {agent.reviews && agent.reviews.length > 0 && (
-              <div className="bg-white rounded-2xl p-6 border border-[#E2E8F0] shadow-xs space-y-4">
-                <div className="flex items-center justify-between border-b border-[#F1F5F9] pb-3">
-                  <h2 className="text-lg font-bold text-[#0F2A43] flex items-center gap-2">
-                    <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
-                    Client Reviews & Testimonials
-                  </h2>
-                  <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-1 rounded">
-                    ★ {agent.rating || 4.9} / 5.0
-                  </span>
-                </div>
-
-                <div className="space-y-3">
-                  {agent.reviews.map((rev) => (
-                    <div key={rev.id} className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="font-bold text-sm text-[#0F2A43]">{rev.author}</span>
-                          {rev.propertyType && (
-                            <span className="text-xs text-slate-400 ml-2">({rev.propertyType})</span>
-                          )}
-                        </div>
-                        <div className="flex items-center text-xs font-bold text-amber-600">
-                          {'★'.repeat(Math.round(rev.rating))}
-                        </div>
-                      </div>
-                      <p className="text-xs text-[#475569] leading-relaxed">
-                        &quot;{rev.comment}&quot;
-                      </p>
-                      <div className="text-[11px] text-slate-400">{rev.date}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
           </div>
 

@@ -191,10 +191,6 @@ export default function SingleBuilderProfilePage({ params }: { params: Promise<{
                     <ShieldCheck className="w-3.5 h-3.5" />
                     <span>{builder.badge}</span>
                   </span>
-                  <span className="bg-white/15 backdrop-blur-md text-amber-300 text-xs font-extrabold px-3 py-1 rounded-full border border-white/20 flex items-center gap-1">
-                    <Star className="w-3.5 h-3.5 fill-current" />
-                    <span>{builder.rating} Rating ({builder.reviewsCount} Reviews)</span>
-                  </span>
                 </div>
 
                 <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight">

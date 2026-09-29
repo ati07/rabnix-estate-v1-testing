@@ -57,6 +57,7 @@ export default function PostProjectPage() {
   // Edit mode: /post-project?edit=<projectId> loads an existing project to update.
   const [editId, setEditId] = useState<string | null>(null);
   const [isLoadingEdit, setIsLoadingEdit] = useState(false);
+  const [editWasApproved, setEditWasApproved] = useState(false);
   const isEditMode = editId !== null;
 
   // Listing quota (shared with property listings).
@@ -132,6 +133,7 @@ export default function PostProjectPage() {
           return;
         }
         const p = data.project as FeaturedProjectItem;
+        setEditWasApproved(p.submissionStatus === 'approved');
         setName(p.name || '');
         setBuilderName(p.builderName || '');
         setCity(p.city || 'Bangalore');
@@ -360,14 +362,18 @@ export default function PostProjectPage() {
               <CheckCircle2 className="w-10 h-10" />
             </div>
             <span className="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-              {isEditMode ? 'Changes Saved' : 'Status: Submitted for Admin Review'}
+              {isEditMode ? (editWasApproved ? 'Status: Back in Review' : 'Changes Saved') : 'Status: Submitted for Admin Review'}
             </span>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F2A43]">
               {isEditMode ? 'Your Project Has Been Updated!' : 'Your Project Has Been Submitted!'}
             </h1>
             <p className="text-sm text-[#64748B] max-w-md mx-auto">
               {isEditMode ? (
-                <>Your changes are saved. You can review them on the project page or manage the listing under <strong>My Projects</strong> in your dashboard.</>
+                editWasApproved ? (
+                  <>Because this project was already live, your edits send it back for admin review. It&apos;ll return to the public catalog once re-approved. Track its status under <strong>My Projects</strong> in your dashboard.</>
+                ) : (
+                  <>Your changes are saved. You can review them on the project page or manage the listing under <strong>My Projects</strong> in your dashboard.</>
+                )
               ) : (
                 <>Our team reviews project details, RERA registration, and builder credentials before publishing it to the public catalog. You can track its status under <strong>My Projects</strong> in your dashboard.</>
               )}
@@ -402,7 +408,9 @@ export default function PostProjectPage() {
               </h1>
               <p className="text-sm text-[#64748B] max-w-xl mx-auto">
                 {isEditMode
-                  ? 'Update your project details below. Changes go live on the project page after you save.'
+                  ? (editWasApproved
+                      ? 'Update your project details below. Since this project is live, saving sends it back for admin review before it returns to the catalog.'
+                      : 'Update your project details below, then save your changes.')
                   : 'List your development and get it in front of high-intent buyers once our team approves it.'}
               </p>
             </div>
@@ -751,7 +759,9 @@ export default function PostProjectPage() {
                   <div className="p-3 bg-[#E7F6F1] border border-[#18A67D]/20 rounded-xl flex items-start gap-2.5 text-xs text-[#0E7C5D]">
                     <CheckCircle2 className="w-4 h-4 text-[#18A67D] shrink-0 mt-0.5" />
                     <span>{isEditMode
-                      ? 'Saving updates your live project page immediately. Approval status is unchanged.'
+                      ? (editWasApproved
+                          ? 'This project is live. Saving your edits sends it back to the admin review queue, and it returns to the catalog once re-approved.'
+                          : 'Saving updates your project. It stays in its current review status until an admin approves it.')
                       : 'On submit, your project enters the admin review queue and is published to the catalog once approved.'}</span>
                   </div>
                 </div>

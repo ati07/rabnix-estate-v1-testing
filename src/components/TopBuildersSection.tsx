@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Award, ShieldCheck, Building2, ExternalLink, ArrowRight, Star } from 'lucide-react';
+import { Award, ShieldCheck, Building2, ExternalLink, ArrowRight } from 'lucide-react';
 import { BUILDERS_DATA, Builder } from '@/lib/buildersData';
 
 interface TopBuildersProps {
@@ -97,11 +97,7 @@ export function TopBuildersSection({ cityName }: TopBuildersProps) {
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-[#E2E8F0] flex items-center justify-between text-xs font-semibold text-[#0F2A43]">
-                <span className="text-amber-500 font-extrabold flex items-center gap-0.5">
-                  <Star className="w-3 h-3 fill-current" />
-                  <span>{b.rating}</span>
-                </span>
+              <div className="pt-2 border-t border-[#E2E8F0] flex items-center justify-end text-xs font-semibold text-[#0F2A43]">
                 <span className="text-[#18A67D] font-bold text-xs flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
                   View Projects ({b.projects.length}) <ArrowRight className="w-3 h-3" />
                 </span>
