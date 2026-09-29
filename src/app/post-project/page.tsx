@@ -54,6 +54,11 @@ export default function PostProjectPage() {
   const [submittedProjectId, setSubmittedProjectId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Edit mode: /post-project?edit=<projectId> loads an existing project to update.
+  const [editId, setEditId] = useState<string | null>(null);
+  const [isLoadingEdit, setIsLoadingEdit] = useState(false);
+  const isEditMode = editId !== null;
+
   // Listing quota (shared with property listings).
   const [quotaUnlimited, setQuotaUnlimited] = useState(false);
   const [quotaRemaining, setQuotaRemaining] = useState<number | null>(null);
@@ -109,6 +114,57 @@ export default function PostProjectPage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const selectedCityData = CITIES_DATA.find((c) => c.name === city) || CITIES_DATA[0];
+
+  // Prefill the form when opened in edit mode (?edit=<id>).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const id = new URLSearchParams(window.location.search).get('edit');
+    if (!id) return;
+    setEditId(id);
+    setIsLoadingEdit(true);
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch(`/api/projects/${id}`, { cache: 'no-store', credentials: 'same-origin' });
+        const data = await res.json().catch(() => ({}));
+        if (!active || !res.ok || !data?.success || !data.project) {
+          setErrorMessage('Could not load this project for editing.');
+          return;
+        }
+        const p = data.project as FeaturedProjectItem;
+        setName(p.name || '');
+        setBuilderName(p.builderName || '');
+        setCity(p.city || 'Bangalore');
+        setLocality(p.locality || '');
+        setAddress(p.address || '');
+        setStatus(p.status || 'New Launch');
+        setBhkConfig(p.bhkConfig || '');
+        setMinPrice(p.minPrice || 0);
+        setMaxPrice(p.maxPrice || 0);
+        setPricePerSqFt(p.pricePerSqFt || '');
+        setReraNumber(p.reraNumber || '');
+        setPossessionDate(p.possessionDate || '');
+        setTotalAreaAcres(p.totalAreaAcres || '');
+        setTotalTowers(p.totalTowers || 0);
+        setTotalUnits(p.totalUnits || 0);
+        setOpenSpacePercent(p.openSpacePercent || '');
+        setTag(p.tag || '');
+        setBuilderExperience(p.builderExperience || '');
+        setBuilderDeliveredProjects(p.builderDeliveredProjects || 0);
+        setDescription(p.description || '');
+        setHighlights(p.highlights || []);
+        setAmenities(p.amenities || []);
+        setFloorPlans(p.floorPlans || []);
+        setNearbyLandmarks(p.nearbyLandmarks || []);
+        setImages(p.galleryImages && p.galleryImages.length > 0 ? p.galleryImages : (p.image ? [p.image] : []));
+      } catch {
+        if (active) setErrorMessage('Could not load this project for editing.');
+      } finally {
+        if (active) setIsLoadingEdit(false);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
 
   const toggle = (list: string[], set: (v: string[]) => void, val: string) => {
     set(list.includes(val) ? list.filter((x) => x !== val) : [...list, val]);
@@ -168,7 +224,8 @@ export default function PostProjectPage() {
 
   const handleSubmit = async () => {
     setErrorMessage(null);
-    if (outOfQuota) {
+    // Editing an existing project doesn't consume a new listing credit.
+    if (!isEditMode && outOfQuota) {
       setErrorMessage('You have used all your listings. Buy a plan from your dashboard to submit more projects.');
       return;
     }
@@ -213,8 +270,8 @@ export default function PostProjectPage() {
         nearbyLandmarks: nearbyLandmarks.filter((n) => n.name.trim()),
       };
 
-      const res = await fetch('/api/projects', {
-        method: 'POST',
+      const res = await fetch(isEditMode ? `/api/projects/${editId}` : '/api/projects', {
+        method: isEditMode ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
         body: JSON.stringify(payload),
@@ -223,10 +280,10 @@ export default function PostProjectPage() {
       if (res.ok && data.success && data.project) {
         setSubmittedProjectId(data.project.id);
       } else {
-        setErrorMessage(data.message || data.error || 'Failed to submit project. Please try again.');
+        setErrorMessage(data.message || data.error || `Failed to ${isEditMode ? 'save' : 'submit'} project. Please try again.`);
       }
     } catch {
-      setErrorMessage('Failed to submit project. Please try again.');
+      setErrorMessage(`Failed to ${isEditMode ? 'save' : 'submit'} project. Please try again.`);
     } finally {
       setIsSubmitting(false);
     }
@@ -246,7 +303,7 @@ export default function PostProjectPage() {
               </span>
             </Link>
             <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-[#E7F6F1] text-[#0E7C5D] border border-[#18A67D]/20 uppercase">
-              Builder Project Submission
+              {isEditMode ? 'Edit Project' : 'Builder Project Submission'}
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -303,12 +360,17 @@ export default function PostProjectPage() {
               <CheckCircle2 className="w-10 h-10" />
             </div>
             <span className="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-              Status: Submitted for Admin Review
+              {isEditMode ? 'Changes Saved' : 'Status: Submitted for Admin Review'}
             </span>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F2A43]">Your Project Has Been Submitted!</h1>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#0F2A43]">
+              {isEditMode ? 'Your Project Has Been Updated!' : 'Your Project Has Been Submitted!'}
+            </h1>
             <p className="text-sm text-[#64748B] max-w-md mx-auto">
-              Our team reviews project details, RERA registration, and builder credentials before publishing it to the
-              public catalog. You can track its status under <strong>My Projects</strong> in your dashboard.
+              {isEditMode ? (
+                <>Your changes are saved. You can review them on the project page or manage the listing under <strong>My Projects</strong> in your dashboard.</>
+              ) : (
+                <>Our team reviews project details, RERA registration, and builder credentials before publishing it to the public catalog. You can track its status under <strong>My Projects</strong> in your dashboard.</>
+              )}
             </p>
             <div className="p-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-left text-xs space-y-2 max-w-md mx-auto">
               <div className="flex justify-between"><span className="text-[#64748B]">Project ID:</span><span className="font-mono font-bold text-[#0F2A43]">{submittedProjectId}</span></div>
@@ -329,13 +391,19 @@ export default function PostProjectPage() {
             <div className="text-center space-y-2">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#E7F6F1] text-[#0E7C5D] text-xs font-bold uppercase tracking-wider">
                 <Sparkles className="w-3.5 h-3.5 text-[#18A67D]" />
-                <span>Reach verified home buyers • Admin-verified listings</span>
+                <span>{isEditMode ? 'Editing your project' : 'Reach verified home buyers • Admin-verified listings'}</span>
               </div>
               <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0F2A43] tracking-tight">
-                Submit a Project on <span className="text-[#18A67D]">Rabnix Estate</span>
+                {isEditMode ? (
+                  <>Edit Your <span className="text-[#18A67D]">Project</span></>
+                ) : (
+                  <>Submit a Project on <span className="text-[#18A67D]">Rabnix Estate</span></>
+                )}
               </h1>
               <p className="text-sm text-[#64748B] max-w-xl mx-auto">
-                List your development and get it in front of high-intent buyers once our team approves it.
+                {isEditMode
+                  ? 'Update your project details below. Changes go live on the project page after you save.'
+                  : 'List your development and get it in front of high-intent buyers once our team approves it.'}
               </p>
             </div>
 
@@ -371,10 +439,16 @@ export default function PostProjectPage() {
               </div>
             </div>
 
-            {outOfQuota && (
+            {outOfQuota && !isEditMode && (
               <div className="flex items-center justify-between gap-2 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold">
                 <span className="flex items-center gap-2"><AlertCircle className="w-4 h-4 shrink-0" /> You&apos;ve used all your listings. Buy a plan to submit more projects.</span>
                 <Link href="/dashboard?tab=billing" className="px-3 py-1 rounded-lg bg-rose-600 text-white hover:bg-rose-700 whitespace-nowrap">View plans</Link>
+              </div>
+            )}
+
+            {isLoadingEdit && (
+              <div className="flex items-center gap-2 p-3.5 rounded-xl bg-sky-50 border border-sky-200 text-sky-700 text-xs font-bold">
+                <Loader2 className="w-4 h-4 shrink-0 animate-spin" /> Loading project details…
               </div>
             )}
 
@@ -676,7 +750,9 @@ export default function PostProjectPage() {
 
                   <div className="p-3 bg-[#E7F6F1] border border-[#18A67D]/20 rounded-xl flex items-start gap-2.5 text-xs text-[#0E7C5D]">
                     <CheckCircle2 className="w-4 h-4 text-[#18A67D] shrink-0 mt-0.5" />
-                    <span>On submit, your project enters the admin review queue and is published to the catalog once approved.</span>
+                    <span>{isEditMode
+                      ? 'Saving updates your live project page immediately. Approval status is unchanged.'
+                      : 'On submit, your project enters the admin review queue and is published to the catalog once approved.'}</span>
                   </div>
                 </div>
               )}
@@ -698,9 +774,9 @@ export default function PostProjectPage() {
                     <span>Continue to Step {currentStep + 1}</span><span>&rarr;</span>
                   </button>
                 ) : (
-                  <button type="button" onClick={handleSubmit} disabled={isSubmitting || outOfQuota}
+                  <button type="button" onClick={handleSubmit} disabled={isSubmitting || (outOfQuota && !isEditMode)}
                     className="px-8 py-3 bg-[#18A67D] hover:bg-[#0E7C5D] text-white font-bold rounded-xl text-sm flex items-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
-                    {isSubmitting ? (<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />) : (<><ShieldCheck className="w-4 h-4" /><span>Submit for Review</span></>)}
+                    {isSubmitting ? (<div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />) : (<><ShieldCheck className="w-4 h-4" /><span>{isEditMode ? 'Save Changes' : 'Submit for Review'}</span></>)}
                   </button>
                 )}
               </div>

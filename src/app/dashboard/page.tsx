@@ -2333,6 +2333,13 @@ export default function UserDashboardPage() {
                                 <ExternalLink className="w-3.5 h-3.5" />
                                 {status === 'approved' ? 'View Live' : 'Preview'}
                               </Link>
+                              <Link
+                                href={`/post-project?edit=${proj.id}`}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-[#0F2A43] hover:bg-[#163b5c] rounded-lg transition-colors cursor-pointer"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                Edit
+                              </Link>
                               <button
                                 onClick={() => deleteMyProject(proj.id)}
                                 className="ml-auto p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"

@@ -519,19 +519,25 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                {project.builderDeliveredProjects ? (
+                  <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+                    <span className="text-slate-400 block text-[11px] mb-0.5">Track Record</span>
+                    <span className="font-bold text-slate-800 text-sm">
+                      {project.builderDeliveredProjects}+ Projects
+                    </span>
+                  </div>
+                ) : null}
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
-                  <span className="text-slate-400 block text-[11px] mb-0.5">Track Record</span>
-                  <span className="font-bold text-slate-800 text-sm">
-                    {project.builderDeliveredProjects ? `${project.builderDeliveredProjects}+ Projects` : '—'}
-                  </span>
+                  <span className="text-slate-400 block text-[11px] mb-0.5">RERA Status</span>
+                  {project.reraNumber ? (
+                    <span className="font-bold text-emerald-600 text-sm">Registered</span>
+                  ) : (
+                    <span className="font-bold text-slate-500 text-sm">Details Awaited</span>
+                  )}
                 </div>
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
-                  <span className="text-slate-400 block text-[11px] mb-0.5">RERA Compliance</span>
-                  <span className="font-bold text-emerald-600 text-sm">100% Verified</span>
-                </div>
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center col-span-2 sm:col-span-1">
-                  <span className="text-slate-400 block text-[11px] mb-0.5">Customer Rating</span>
-                  <span className="font-bold text-amber-600 text-sm">4.8 / 5.0 ★</span>
+                  <span className="text-slate-400 block text-[11px] mb-0.5">Possession</span>
+                  <span className="font-bold text-slate-800 text-sm">{project.possessionDate || project.status}</span>
                 </div>
               </div>
             </div>
