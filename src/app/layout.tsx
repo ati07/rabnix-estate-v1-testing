@@ -8,9 +8,9 @@ import { PropertyProvider } from '@/lib/propertyContext';
 // domain in production. Falls back to Vercel's auto-injected deployment URL,
 // then to localhost for local development.
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  (process.env.NEXT_PUBLIC_VERCEL_URL
-    ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+  process.env.SITE_URL ||
+  (process.env.SITE_URL
+    ? `https://${process.env.SITE_URL}`
     : 'http://localhost:3000');
 
 export const metadata: Metadata = {
