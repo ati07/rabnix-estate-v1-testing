@@ -260,12 +260,12 @@ export default function HomeView() {
       />
 
       {/* 6. BAYBAYT PREFERRED AGENTS IN [CITY] (Reference Screenshot 3) */}
-      <PreferredAgentsSection
+      {/* <PreferredAgentsSection
         cityName={selectedCity.name}
         onContactAgent={(agent) => {
           router.push(`/agents/${agent.id}`);
         }}
-      />
+      /> */}
 
       {/* 7. TOP PROJECTS [baybaytHomes] (Reference Screenshot 4) */}
       <TopProjectsSection
