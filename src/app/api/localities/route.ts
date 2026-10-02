@@ -1,34 +1,78 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getPopularLocalitiesForCity } from '@/lib/homeSectionsData';
+import { getPopularLocalitiesForCity, PopularLocalityCardItem } from '@/lib/homeSectionsData';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// GET /api/localities?city=Bangalore
-// Returns the curated locality tiles for a city, but overlays each tile's
-// propertiesCount with the *live* count of approved listings in that locality so
-// the numbers track real inventory. Falls back to the static counts on any error.
+// Build a "₹ X - ₹ Y per sqft" string from live min/max price-per-sqft.
+function priceRangeLabel(min: number | null, max: number | null): string {
+  if (!min || !max) return 'Price on request';
+  const fmt = (n: number) => `₹ ${Math.round(n).toLocaleString('en-IN')}`;
+  return min === max ? `${fmt(min)} per sqft` : `${fmt(min)} - ${fmt(max)} per sqft`;
+}
+
+// GET /api/localities?city=Lucknow
+// Source of truth = admin-curated Locality tiles for the city. Each tile's
+// propertiesCount and priceRangeSqFt are computed LIVE from approved Property
+// rows whose `locality` matches the tile name (case-insensitive). Tiles with
+// zero matching approved listings are hidden (inventory-gated / "option 4").
+// If the admin has curated nothing for the city — or nothing currently has
+// inventory — we fall back to the static hardcoded tiles so the section is
+// never blank. Any DB error also falls back to static.
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const city = searchParams.get('city') || '';
 
-  const tiles = getPopularLocalitiesForCity(city);
+  const staticTiles = getPopularLocalitiesForCity(city);
 
   try {
+    const curated = await prisma.locality.findMany({
+      where: { city },
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+
+    if (curated.length === 0) {
+      return NextResponse.json({ success: true, localities: staticTiles, source: 'static' });
+    }
+
+    // Live stats per locality (approved inventory only) for this city.
     const grouped = await prisma.property.groupBy({
       by: ['locality'],
       where: { city, verificationStatus: 'approved' },
       _count: { _all: true },
+      _min: { pricePerSqFt: true },
+      _max: { pricePerSqFt: true },
     });
-    const counts = new Map(grouped.map((g) => [g.locality.toLowerCase(), g._count._all]));
-    const merged = tiles.map((t) => {
-      const live = counts.get(t.name.toLowerCase());
-      return live && live > 0 ? { ...t, propertiesCount: live } : t;
-    });
-    return NextResponse.json({ success: true, localities: merged });
+    const stats = new Map(
+      grouped.map((g) => [
+        g.locality.toLowerCase(),
+        { count: g._count._all, min: g._min.pricePerSqFt, max: g._max.pricePerSqFt },
+      ])
+    );
+
+    const localities: PopularLocalityCardItem[] = [];
+    for (const t of curated) {
+      const s = stats.get(t.name.toLowerCase());
+      if (!s || s.count === 0) continue; // hide empty localities
+      localities.push({
+        id: t.id,
+        name: t.name,
+        city: t.city,
+        thumbnail: t.thumbnail,
+        priceRangeSqFt: priceRangeLabel(s.min, s.max),
+        propertiesCount: s.count,
+      });
+    }
+
+    // Keep the fallback if nothing curated currently has inventory.
+    if (localities.length === 0) {
+      return NextResponse.json({ success: true, localities: staticTiles, source: 'static' });
+    }
+
+    return NextResponse.json({ success: true, localities, source: 'live' });
   } catch (err: any) {
-    console.warn('Prisma localities fallback to static counts:', err?.message || err);
-    return NextResponse.json({ success: true, localities: tiles });
+    console.warn('Prisma localities fallback to static tiles:', err?.message || err);
+    return NextResponse.json({ success: true, localities: staticTiles, source: 'static' });
   }
 }

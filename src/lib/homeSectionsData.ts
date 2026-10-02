@@ -96,8 +96,8 @@ export interface PopularLocalityCardItem {
   name: string;
   city: string;
   priceRangeSqFt: string;
-  rating: number;
-  reviewsCount: number;
+  rating?: number;
+  reviewsCount?: number;
   thumbnail: string;
   propertiesCount: number;
 }

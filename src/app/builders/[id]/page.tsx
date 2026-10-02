@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect, use } from 'react';
 import Link from 'next/link';
+import { BrandLogo } from '@/components/BrandLogo';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { 
@@ -114,12 +115,7 @@ export default function SingleBuilderProfilePage({ params }: { params: Promise<{
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2 group select-none">
-              <div className="w-8 h-8 bg-[#0F2A43] rounded-md flex items-center justify-center shadow-xs">
-                <div className="w-3.5 h-3.5 border-2 border-[#18A67D] rotate-45"></div>
-              </div>
-              <span className="text-xl font-extrabold tracking-tight text-[#0F2A43]">
-                Bay<span className="text-[#18A67D]">Bayt</span>
-              </span>
+              <BrandLogo variant="onLight" className="h-8 w-auto" />
             </Link>
           </div>
 

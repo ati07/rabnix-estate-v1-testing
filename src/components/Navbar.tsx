@@ -28,6 +28,7 @@ import {
 import { CityInfo, ListingType } from '@/lib/types';
 import { CITIES_DATA } from '@/lib/realEstateData';
 import { useAuth } from '@/lib/authContext';
+import { BrandLogo } from '@/components/BrandLogo';
 
 interface NavbarProps {
   selectedCity: CityInfo;
@@ -132,13 +133,8 @@ export function Navbar({
               onClick={() => handleNavClick('buy')}
               className="cursor-pointer flex items-center gap-2 group select-none shrink-0"
             >
-              {/* Geometric Brand Logo */}
-              <div className="w-8 h-8 bg-[#0F2A43] rounded-md flex items-center justify-center shadow-sm shrink-0 group-hover:bg-[#163b5c] transition-colors">
-                <div className="w-3.5 h-3.5 border-2 border-[#18A67D] rotate-45 transition-transform group-hover:rotate-90 duration-300"></div>
-              </div>
-              <span className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#0F2A43] whitespace-nowrap">
-                Bay<span className="text-[#18A67D]">Bayt</span>
-              </span>
+              {/* Brand Logo */}
+              <BrandLogo variant="onLight" priority className="h-9 sm:h-10 w-auto" />
             </div>
 
             {/* City Selector Pill */}

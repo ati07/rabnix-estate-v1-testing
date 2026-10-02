@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { CITIES_DATA } from '@/lib/realEstateData';
 import { CityInfo } from '@/lib/types';
+import { BrandLogo } from '@/components/BrandLogo';
 
 interface FooterProps {
   onSelectCity: (city: CityInfo) => void;
@@ -65,13 +66,8 @@ export function Footer({
           
           {/* Col 1: Brand & About */}
           <div className="col-span-2 space-y-3">
-            <div className="flex items-center space-x-2">
-              <div className="w-6 h-6 bg-[#18A67D] rounded transform rotate-45 flex items-center justify-center shadow-sm">
-                <div className="w-2.5 h-2.5 bg-white rounded-xs transform -rotate-45" />
-              </div>
-              <span className="font-extrabold text-base tracking-tight text-white uppercase">
-                Bay<span className="text-[#22C39A]">Bayt</span>
-              </span>
+            <div className="flex items-center">
+              <BrandLogo variant="onDark" className="h-9 w-auto" />
             </div>
             <p className="text-slate-300 leading-relaxed max-w-sm text-xs">
               India&apos;s trusted property portal for buying, selling, and renting residential flats, luxury villas, commercial office spaces, and land plots with zero brokerage.

@@ -2,6 +2,7 @@
 
 import React, { Suspense, useEffect } from 'react';
 import Link from 'next/link';
+import { BrandLogo } from '@/components/BrandLogo';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/authContext';
 import { 
@@ -36,12 +37,7 @@ function AuthPageContent() {
       <header className="w-full bg-white border-b border-[#E2E8F0] py-4 px-4 sm:px-8">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group select-none">
-            <div className="w-8 h-8 bg-[#0F2A43] rounded-md flex items-center justify-center shadow-sm group-hover:bg-[#163b5c] transition-colors">
-              <div className="w-3.5 h-3.5 border-2 border-[#18A67D] rotate-45"></div>
-            </div>
-            <span className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#0F2A43]">
-              Bay<span className="text-[#18A67D]">Bayt</span>
-            </span>
+            <BrandLogo variant="onLight" priority className="h-9 w-auto" />
           </Link>
 
           <Link

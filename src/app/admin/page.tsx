@@ -61,6 +61,7 @@ import { useAuth } from '@/lib/authContext';
 import { useProperties } from '@/lib/propertyContext';
 import { Property, VerificationStatus, UserRole, UserProfile, SystemActivityLog } from '@/lib/types';
 import type { FeaturedProjectItem } from '@/lib/homeSectionsData';
+import { LocalitiesPanel } from '@/components/admin/LocalitiesPanel';
 import {
   AdminActivityTrendChart,
   AdminUserBreakdownPieChart,
@@ -102,7 +103,7 @@ export default function AdminPortalPage() {
   } = useProperties();
 
   // Navigation Tabs in Admin Suite
-  const [activeTab, setActiveTab] = useState<'overview' | 'moderation' | 'projects' | 'users' | 'agents' | 'activity' | 'trends' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'moderation' | 'projects' | 'localities' | 'users' | 'agents' | 'activity' | 'trends' | 'settings'>('overview');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Moderation Filters
@@ -623,6 +624,25 @@ export default function AdminPortalPage() {
                   {projPendingCount + projUnderReviewCount}
                 </span>
               )}
+            </button>
+
+            {/* 3b. Popular Localities Curation */}
+            <button
+              id="admin-sidebar-localities"
+              onClick={() => {
+                setActiveTab('localities');
+                setMobileSidebarOpen(false);
+              }}
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+                activeTab === 'localities'
+                  ? 'bg-[#0F2A43] text-white font-black shadow-xs'
+                  : 'hover:bg-[#F8FAFC] text-[#64748B] hover:text-[#0F2A43]'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <MapPin className={`w-4 h-4 ${activeTab === 'localities' ? 'text-[#22C39A]' : 'text-rose-500'}`} />
+                <span>Popular Localities</span>
+              </div>
             </button>
 
             {/* 4. User & Block Control */}
@@ -2259,6 +2279,8 @@ export default function AdminPortalPage() {
 
           </div>
         )}
+
+        {activeTab === 'localities' && <LocalitiesPanel />}
 
       </main>
       </div>

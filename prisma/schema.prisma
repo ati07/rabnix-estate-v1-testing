@@ -287,6 +287,24 @@ model FeaturedProject {
 // This keeps a single source of truth: an agent's directory profile, login
 // account, and real listings are one record.
 
+// Admin-curated "Popular Localities" home-page tiles. Only the display metadata
+// (name + thumbnail) lives here; the property count and price-per-sqft range are
+// computed live from approved Property rows whose `locality` matches `name`
+// (case-insensitive) in the same `city`. A tile with zero matching approved
+// listings is hidden on the site (pure inventory-gated display).
+model Locality {
+  id        String   @id @default(cuid())
+  city      String
+  name      String
+  thumbnail String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([city, name])
+  @@index([city])
+}
+
 model Collection {
   id                String   @id // slug, e.g. "zero-brokerage"
   title             String

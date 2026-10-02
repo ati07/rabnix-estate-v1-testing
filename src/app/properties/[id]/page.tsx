@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
+import { BrandLogo } from '@/components/BrandLogo';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { 
@@ -162,12 +163,7 @@ export default function PropertyDetailsPage({ params }: { params: Promise<{ id: 
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <Link href="/" className="flex items-center gap-2 group select-none">
-              <div className="w-7 h-7 bg-[#0F2A43] rounded-md flex items-center justify-center shadow-xs">
-                <div className="w-3 h-3 border-2 border-[#18A67D] rotate-45"></div>
-              </div>
-              <span className="text-lg font-extrabold tracking-tight text-[#0F2A43]">
-                Bay<span className="text-[#18A67D]">Bayt</span>
-              </span>
+              <BrandLogo variant="onLight" className="h-7 w-auto" />
             </Link>
           </div>
 
