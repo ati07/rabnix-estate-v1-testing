@@ -1,7 +1,7 @@
 # API Reference
 
 All endpoints are Next.js Route Handlers under `src/app/api/`. Requests/responses are JSON
-(except `/api/upload`, which is multipart). Auth is via the httpOnly `rabnix_session` cookie,
+(except `/api/upload`, which is multipart). Auth is via the httpOnly `baybayt_session` cookie,
 set automatically on login/register.
 
 Legend: 🔓 public · 🔑 any signed-in user · 👑 admin only · 🧍 resource owner (or admin)

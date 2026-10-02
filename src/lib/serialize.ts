@@ -171,7 +171,7 @@ export function serializeAgentUser(
     id: u.id,
     name: u.name,
     avatar: u.avatar || AGENT_DEFAULT_AVATAR,
-    badge: u.agentBadge || 'Rabnix Preferred',
+    badge: u.agentBadge || 'BayBayt Preferred',
     agencyName: u.companyName || 'Independent Agent',
     agencyLogo: u.agencyLogo || AGENT_DEFAULT_LOGO,
     operatingSince: u.operatingSince ?? u.createdAt.getFullYear(),

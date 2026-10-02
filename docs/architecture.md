@@ -69,7 +69,7 @@ This full loop was tested and verified working.
 ## Auth mechanics
 
 - Login/register sign a JWT (HS256, 7-day expiry) with `jose`, stored in the httpOnly cookie
-  `rabnix_session` (secure in production).
+  `baybayt_session` (secure in production).
 - `getCurrentUser()` reads and verifies that cookie on the server for each protected route.
 - `toPublicProfile()` strips `passwordHash` before any user object leaves the server.
 - `JWT_SECRET` (from `.env`) signs the tokens — set a strong value outside local dev.

@@ -176,7 +176,7 @@ export function HeroSearch({
         <div className="text-center sm:text-left space-y-1.5 max-w-2xl">
           <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#163b5c] text-[#22C39A] text-xs font-bold uppercase tracking-wider">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Welcome to Rabnix Estate • {selectedCity.name}</span>
+            <span>Welcome to BayBayt • {selectedCity.name}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-white leading-tight">
             Find Your Dream Home in <span className="text-[#22C39A]">{selectedCity.name}</span>
@@ -572,7 +572,7 @@ export function HeroSearch({
           {[
             { title: '100% Verified Listings', desc: 'RERA approved with physical verification' },
             { title: 'Direct Owner Connect', desc: 'Zero brokerage on 10,000+ homes' },
-            { title: 'Rabnix AI Valuation', desc: 'Real-time price & rental estimation' }
+            { title: 'BayBayt AI Valuation', desc: 'Real-time price & rental estimation' }
           ].map((badge, idx) => (
             <div key={idx} className="flex items-center gap-2.5 bg-[#163b5c]/60 backdrop-blur-xs p-2.5 rounded-xl border border-white/10">
               <CheckCircle2 className="w-4 h-4 text-[#22C39A] shrink-0" />

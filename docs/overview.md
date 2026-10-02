@@ -1,6 +1,6 @@
 # Overview
 
-## What Rabnix Estate is
+## What BayBayt is
 
 A real-estate marketplace where:
 
@@ -21,7 +21,7 @@ mock data held in React state). It has been rebuilt into a real application back
 | Backend API | Next.js Route Handlers (`src/app/api/**/route.ts`) — a custom Node API |
 | Database | PostgreSQL (local) |
 | ORM | Prisma v6 (`@prisma/client` + `prisma` CLI) |
-| Auth | Custom JWT sessions via [`jose`](https://github.com/panva/jose) (HS256), httpOnly cookie `rabnix_session` |
+| Auth | Custom JWT sessions via [`jose`](https://github.com/panva/jose) (HS256), httpOnly cookie `baybayt_session` |
 | Password hashing | `bcryptjs` |
 | Styling | Tailwind CSS v4 |
 | AI advisor (optional) | Google Gemini (`@google/genai`) |

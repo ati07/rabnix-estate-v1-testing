@@ -10,11 +10,11 @@ const prisma = new PrismaClient();
 
 // Demo accounts — password shown so you can log in immediately.
 const DEMO_ACCOUNTS = [
-  { key: 'admin',   name: 'Rabnix Master Admin', email: 'admin@rabnixestate.com', phone: '+91 80000 99099', role: 'admin',   password: 'admin123',    city: 'National (HQ)', companyName: 'Rabnix Estate Verification Division' },
-  { key: 'owner',   name: 'Priya Venkatesh',     email: 'owner@rabnix.com',       phone: '+91 98450 11223', role: 'owner',   password: 'password123', city: 'Bangalore' },
-  { key: 'buyer',   name: 'Rahul Sharma',        email: 'buyer@rabnix.com',       phone: '+91 98765 43210', role: 'buyer',   password: 'password123', city: 'Bangalore' },
-  { key: 'agent',   name: 'Vikram Deshmukh',     email: 'agent@rabnix.com',       phone: '+91 98200 99887', role: 'agent',   password: 'password123', city: 'Mumbai',    companyName: 'Prestige Realty Advisors', reraNumber: 'PRM/KA/RERA/1251/310/AG/210412/00189' },
-  { key: 'builder', name: 'Amit Singhal',        email: 'builder@rabnix.com',     phone: '+91 99110 55443', role: 'builder', password: 'password123', city: 'Delhi / NCR', companyName: 'Godrej Properties Ltd', reraNumber: 'DLRERA2019P0004' },
+  { key: 'admin',   name: 'BayBayt Master Admin', email: 'admin@baybayt.com', phone: '+91 80000 99099', role: 'admin',   password: 'admin123',    city: 'National (HQ)', companyName: 'BayBayt Verification Division' },
+  { key: 'owner',   name: 'Priya Venkatesh',     email: 'owner@baybayt.com',       phone: '+91 98450 11223', role: 'owner',   password: 'password123', city: 'Bangalore' },
+  { key: 'buyer',   name: 'Rahul Sharma',        email: 'buyer@baybayt.com',       phone: '+91 98765 43210', role: 'buyer',   password: 'password123', city: 'Bangalore' },
+  { key: 'agent',   name: 'Vikram Deshmukh',     email: 'agent@baybayt.com',       phone: '+91 98200 99887', role: 'agent',   password: 'password123', city: 'Mumbai',    companyName: 'Prestige Realty Advisors', reraNumber: 'PRM/KA/RERA/1251/310/AG/210412/00189' },
+  { key: 'builder', name: 'Amit Singhal',        email: 'builder@baybayt.com',     phone: '+91 99110 55443', role: 'builder', password: 'password123', city: 'Delhi / NCR', companyName: 'Godrej Properties Ltd', reraNumber: 'DLRERA2019P0004' },
 ] as const;
 
 async function main() {
@@ -140,7 +140,7 @@ async function main() {
       buyerUserId: userIdByKey.buyer,
       buyerName: 'Rahul Sharma',
       buyerPhone: '+91 98765 43210',
-      buyerEmail: 'buyer@rabnix.com',
+      buyerEmail: 'buyer@baybayt.com',
       message: 'Interested in visiting this weekend. Is the price negotiable?',
       preferredTime: 'Saturday 11:00 AM',
       status: 'new',
@@ -149,7 +149,7 @@ async function main() {
 
   await prisma.activityLog.createMany({
     data: [
-      { action: 'property_verified', actorName: 'Rabnix Master Admin', actorRole: 'Admin', details: 'Awarded Green Verified Seal after RERA check.', targetTitle: firstProp.title, targetId: firstProp.id, severity: 'success' },
+      { action: 'property_verified', actorName: 'BayBayt Master Admin', actorRole: 'Admin', details: 'Awarded Green Verified Seal after RERA check.', targetTitle: firstProp.title, targetId: firstProp.id, severity: 'success' },
       { action: 'user_registered', actorName: 'Rahul Sharma', actorRole: 'Buyer', details: 'New buyer account registered in Bangalore.', severity: 'info' },
     ],
   });
@@ -196,7 +196,7 @@ async function main() {
   for (const a of HOME_PREFERRED_AGENTS) {
     const email = (a.email && a.email.trim())
       ? a.email.toLowerCase().trim()
-      : `${a.id}@rabnix-agents.com`;
+      : `${a.id}@baybayt-agents.com`;
     // Skip if this email collides with a demo account already created.
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) continue;

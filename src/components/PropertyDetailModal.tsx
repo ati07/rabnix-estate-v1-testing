@@ -121,7 +121,7 @@ export function PropertyDetailModal({
         <div className="bg-[#0F2A43] text-white px-5 py-3.5 flex items-center justify-between border-b border-[#163b5c] shrink-0">
           <div className="flex items-center gap-2">
             <div className="bg-[#18A67D] text-white text-xs font-black px-2 py-0.5 rounded-xs">
-              Rabnix Estate
+              BayBayt
             </div>
             <span className="text-xs text-slate-300">Property ID: {property.id}</span>
           </div>
@@ -484,7 +484,7 @@ export function PropertyDetailModal({
                         <span>Curious about traffic, schools, or upcoming infrastructure?</span>
                       </div>
                       <div className="text-xs text-slate-300 mt-0.5">
-                        Ask Rabnix Genie for an in-depth neighborhood breakdown.
+                        Ask BayBayt Genie for an in-depth neighborhood breakdown.
                       </div>
                     </div>
                     <button
@@ -504,7 +504,7 @@ export function PropertyDetailModal({
                     <div className="text-center py-12 space-y-3">
                       <div className="inline-block w-8 h-8 border-3 border-[#18A67D] border-t-transparent rounded-full animate-spin" />
                       <div className="text-sm font-bold text-[#0F2A43]">
-                        Rabnix AI Valuation Engine is crunching market metrics...
+                        BayBayt AI Valuation Engine is crunching market metrics...
                       </div>
                       <div className="text-xs text-[#64748B]">
                         Analyzing price per sq.ft trends, rental yield data, and capital appreciation for {property.locality}.
@@ -708,7 +708,7 @@ export function PropertyDetailModal({
                     </div>
 
                     <div className="text-[10px] text-[#64748B]">
-                      By submitting you agree to Rabnix Estate Terms & Privacy Policy.
+                      By submitting you agree to BayBayt Terms & Privacy Policy.
                     </div>
 
                     <button

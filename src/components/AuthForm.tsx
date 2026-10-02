@@ -160,7 +160,7 @@ export function AuthForm({ initialMode = 'signin', onSuccess, isModal = false }:
     });
 
     if (res.success) {
-      setSuccessMessage(`Account created successfully as ${selectedRole.toUpperCase()}! Welcome to Rabnix Estate.`);
+      setSuccessMessage(`Account created successfully as ${selectedRole.toUpperCase()}! Welcome to BayBayt.`);
       if (onSuccess) {
         setTimeout(onSuccess, 800);
       }
@@ -403,7 +403,7 @@ export function AuthForm({ initialMode = 'signin', onSuccess, isModal = false }:
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <>
-                    <span>{signInMethod === 'otp' && !otpSent ? 'Send OTP Verification Code' : 'Sign In to Rabnix Estate'}</span>
+                    <span>{signInMethod === 'otp' && !otpSent ? 'Send OTP Verification Code' : 'Sign In to BayBayt'}</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}

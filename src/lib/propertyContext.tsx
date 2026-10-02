@@ -33,7 +33,7 @@ interface PropertyContextType {
 
 const PropertyContext = createContext<PropertyContextType | undefined>(undefined);
 
-const SHORTLIST_STORAGE_KEY = 'rabnix_shortlists_store_v2';
+const SHORTLIST_STORAGE_KEY = 'baybayt_shortlists_store_v2';
 
 async function api(path: string, options?: RequestInit) {
   const res = await fetch(path, {

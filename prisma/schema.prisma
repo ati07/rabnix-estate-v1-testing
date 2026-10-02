@@ -1,4 +1,4 @@
-// Rabnix Estate — Prisma schema (Postgres)
+// BayBayt — Prisma schema (Postgres)
 // Mirrors src/lib/types.ts so the API returns objects the UI already expects.
 
 generator client {
@@ -23,12 +23,12 @@ model User {
   reraNumber      String?
   // --- Preferred Agent directory profile (only meaningful for role='agent') ---
   // isPreferredAgent is admin-curated: it decides who appears in the public
-  // "Rabnix Preferred Agents" directory. The rest are the agent's marketing
+  // "BayBayt Preferred Agents" directory. The rest are the agent's marketing
   // profile — most self-editable by the agent, except the editorial ones
   // (agentBadge, agentRating) which stay admin-controlled.
   isPreferredAgent Boolean @default(false)
   agencyLogo      String?
-  agentBadge      String?  // editorial, admin-set (e.g. "Rabnix Preferred")
+  agentBadge      String?  // editorial, admin-set (e.g. "BayBayt Preferred")
   agentRating     Float?   // editorial, admin-set
   operatingSince  Int?
   experienceYears Int?

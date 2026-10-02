@@ -291,7 +291,7 @@ export default function PostPropertyPage() {
                 <div className="w-3.5 h-3.5 border-2 border-[#18A67D] rotate-45"></div>
               </div>
               <span className="text-xl font-extrabold tracking-tight text-[#0F2A43]">
-                Rabnix <span className="text-[#18A67D]">Estate</span>
+                Bay<span className="text-[#18A67D]">Bayt</span>
               </span>
             </Link>
             <span className="hidden sm:inline-block px-2 py-0.5 rounded text-[11px] font-bold bg-[#E7F6F1] text-[#0E7C5D] border border-[#18A67D]/20 uppercase">
@@ -335,7 +335,7 @@ export default function PostPropertyPage() {
                 Sign In to Post Your Property
               </h1>
               <p className="text-xs sm:text-sm text-[#64748B] max-w-md mx-auto leading-relaxed">
-                To prevent spam, maintain 100% verified listings, and connect you directly with genuine buyers, you must be logged into your Rabnix Estate account.
+                To prevent spam, maintain 100% verified listings, and connect you directly with genuine buyers, you must be logged into your BayBayt account.
               </p>
             </div>
 
@@ -438,7 +438,7 @@ export default function PostPropertyPage() {
                 <span>Zero Brokerage • 100% Free • Direct Buyer Reach</span>
               </div>
               <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0F2A43] tracking-tight">
-                Post Property on <span className="text-[#18A67D]">Rabnix Estate</span>
+                Post Property on <span className="text-[#18A67D]">BayBayt</span>
               </h1>
               <p className="text-sm text-[#64748B] max-w-xl mx-auto">
                 Reach over 2.5 million verified home buyers and tenants. Get high-intent inquiries directly on your phone or WhatsApp.
@@ -1018,7 +1018,7 @@ export default function PostPropertyPage() {
                       <span>Admin Verification & RERA Clearance</span>
                     </div>
                     <p className="text-xs text-[#64748B]">
-                      Rabnix Estate verifies property titles, ownership authenticity, and RERA approval before awarding the Green Verification badge.
+                      BayBayt verifies property titles, ownership authenticity, and RERA approval before awarding the Green Verification badge.
                     </p>
 
                     <div className="space-y-2 pt-1">
@@ -1131,7 +1131,7 @@ export default function PostPropertyPage() {
                   <div className="p-3 bg-[#E7F6F1] border border-[#18A67D]/20 rounded-xl flex items-start gap-2.5 text-xs text-[#0E7C5D]">
                     <CheckCircle2 className="w-4 h-4 text-[#18A67D] shrink-0 mt-0.5" />
                     <span>
-                      By clicking Submit, your listing will be dispatched to the Rabnix Verification Queue and indexed in the Master Catalog.
+                      By clicking Submit, your listing will be dispatched to the BayBayt Verification Queue and indexed in the Master Catalog.
                     </span>
                   </div>
 
@@ -1195,7 +1195,7 @@ export default function PostPropertyPage() {
       {/* Simple Footer */}
       <footer className="w-full border-t border-[#E2E8F0] bg-white py-4 px-4 text-center text-xs text-[#64748B]">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>&copy; {new Date().getFullYear()} Rabnix Estate Technologies India Pvt Ltd. All rights reserved.</span>
+          <span>&copy; {new Date().getFullYear()} BayBayt Technologies India Pvt Ltd. All rights reserved.</span>
           <div className="flex items-center gap-4 text-xs font-medium">
             <Link href="/" className="hover:text-[#18A67D]">Home</Link>
             <span className="text-slate-300">•</span>

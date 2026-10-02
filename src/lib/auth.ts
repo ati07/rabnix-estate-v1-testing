@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma';
 import type { User as DbUser } from '@prisma/client';
 import type { UserProfile, UserRole } from '@/lib/types';
 
-const COOKIE_NAME = 'rabnix_session';
+const COOKIE_NAME = 'baybayt_session';
 const secret = new TextEncoder().encode(
   process.env.JWT_SECRET || 'dev-insecure-secret-change-me'
 );

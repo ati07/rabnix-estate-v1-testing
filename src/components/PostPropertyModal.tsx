@@ -191,7 +191,7 @@ export function PostPropertyModal({
         <div className="bg-[#0F2A43] text-white px-6 py-4 flex items-center justify-between border-b border-[#163b5c]">
           <div className="flex items-center gap-2">
             <div className="bg-[#18A67D] text-white text-xs font-black px-2 py-0.5 rounded-xs">
-              Rabnix Estate
+              BayBayt
             </div>
             <h2 className="text-sm font-bold">Post Property for Sale or Rent - 100% FREE</h2>
           </div>
@@ -263,7 +263,7 @@ export function PostPropertyModal({
             </div>
             <h3 className="text-2xl font-black text-[#0F2A43]">Property Published Successfully!</h3>
             <p className="text-sm text-[#64748B] max-w-md mx-auto">
-              Your property has been listed on Rabnix Estate with verified status and zero brokerage. You will start receiving direct buyer enquiries.
+              Your property has been listed on BayBayt with verified status and zero brokerage. You will start receiving direct buyer enquiries.
             </p>
             <button
               onClick={onClose}

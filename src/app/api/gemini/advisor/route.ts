@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     if (action === 'valuation') {
       const { city, locality, category, areaSqFt, bhk, furnishing, age } = payload;
 
-      const prompt = `You are Rabnix Estate India's Senior Chief Real Estate Valuer and Market Analyst.
+      const prompt = `You are BayBayt India's Senior Chief Real Estate Valuer and Market Analyst.
 Evaluate fair market pricing, rental yields, and investment forecast for the following Indian property:
 - City: ${city || 'Mumbai'}
 - Locality: ${locality || 'Central'}
@@ -47,7 +47,7 @@ Provide accurate, realistic Indian real estate valuation metrics with INR figure
         model: 'gemini-3.7-flash',
         contents: prompt,
         config: {
-          systemInstruction: 'You are Rabnix Estate AI Property Valuation Engine. Return accurate, data-backed Indian real estate analytics in structured JSON.',
+          systemInstruction: 'You are BayBayt AI Property Valuation Engine. Return accurate, data-backed Indian real estate analytics in structured JSON.',
           responseMimeType: 'application/json',
           responseSchema: {
             type: Type.OBJECT,
@@ -109,7 +109,7 @@ Provide accurate, realistic Indian real estate valuation metrics with INR figure
       return NextResponse.json({ success: true, data: parsed });
     }
 
-    // Action 2: Rabnix Genie Chatbot & Real Estate Consultation
+    // Action 2: BayBayt Genie Chatbot & Real Estate Consultation
     if (action === 'chat') {
       const { messages, userQuery, contextProperty } = payload;
 
@@ -122,7 +122,7 @@ Provide accurate, realistic Indian real estate valuation metrics with INR figure
         model: 'gemini-3.7-flash',
         contents: prompt,
         config: {
-          systemInstruction: `You are "Rabnix Genie", the official AI Real Estate Advisor at Rabnix Estate (India's Premier Real Estate & Property Portal).
+          systemInstruction: `You are "BayBayt Genie", the official AI Real Estate Advisor at BayBayt (India's Premier Real Estate & Property Portal).
 You help buyers, tenants, sellers, and NRI investors navigate Indian real estate with expertise in:
 1. Locality recommendations, price per sq.ft trends across Mumbai, Bangalore, Delhi-NCR, Hyderabad, Pune, Chennai, etc.
 2. Home Loans, interest rates (Repo-linked lending rates), Section 80C and Section 24(b) tax deductions, EMI optimization.
@@ -142,7 +142,7 @@ Tone: Professional, friendly, highly knowledgeable about Indian cities & real es
 
     return NextResponse.json({ success: false, error: 'Invalid action specified' }, { status: 400 });
   } catch (error: any) {
-    console.error('Error in Rabnix Estate AI route:', error);
+    console.error('Error in BayBayt AI route:', error);
     return NextResponse.json(
       {
         success: false,

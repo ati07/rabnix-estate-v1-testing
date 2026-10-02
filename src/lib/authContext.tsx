@@ -9,7 +9,7 @@ export const DEMO_USERS: Record<UserRole, { name: string; avatar: string }> = {
   owner:   { name: 'Priya Venkatesh',     avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80' },
   agent:   { name: 'Vikram Deshmukh',     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' },
   builder: { name: 'Amit Singhal',        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80' },
-  admin:   { name: 'Rabnix Master Admin', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80' },
+  admin:   { name: 'BayBayt Master Admin', avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80' },
 };
 
 interface AuthContextType {

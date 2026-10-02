@@ -36,7 +36,7 @@ export function AiGenieChatDrawer({
     const initial: Message[] = [
       {
         sender: 'bot',
-        text: `Namaste! I am **Rabnix Genie**, your AI Real Estate Advisor at Rabnix Estate. How can I assist you with Indian properties, home loans, RERA rules, or locality comparisons today?`,
+        text: `Namaste! I am **BayBayt Genie**, your AI Real Estate Advisor at BayBayt. How can I assist you with Indian properties, home loans, RERA rules, or locality comparisons today?`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
     ];
@@ -136,7 +136,7 @@ export function AiGenieChatDrawer({
         ...prev,
         {
           sender: 'bot',
-          text: 'Network error connecting to Rabnix AI Advisor.',
+          text: 'Network error connecting to BayBayt AI Advisor.',
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
       ]);
@@ -156,11 +156,11 @@ export function AiGenieChatDrawer({
           </div>
           <div>
             <div className="text-sm font-bold flex items-center gap-1.5">
-              <span>Rabnix Genie</span>
+              <span>BayBayt Genie</span>
               <span className="bg-[#18A67D] text-white text-[10px] uppercase font-black px-1.5 py-0.2 rounded-xs">AI</span>
             </div>
             <div className="text-[11px] text-slate-300">
-              India&apos;s Smart Real Estate & Valuation Advisor by Rabnix Estate
+              India&apos;s Smart Real Estate & Valuation Advisor by BayBayt
             </div>
           </div>
         </div>
@@ -222,7 +222,7 @@ export function AiGenieChatDrawer({
               <div className="w-2 h-2 rounded-full bg-[#18A67D] animate-bounce" />
               <div className="w-2 h-2 rounded-full bg-[#0F2A43] animate-bounce [animation-delay:0.2s]" />
               <div className="w-2 h-2 rounded-full bg-[#22C39A] animate-bounce [animation-delay:0.4s]" />
-              <span>Rabnix Genie is formulating insights...</span>
+              <span>BayBayt Genie is formulating insights...</span>
             </div>
           </div>
         )}

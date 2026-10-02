@@ -137,7 +137,7 @@ export function Navbar({
                 <div className="w-3.5 h-3.5 border-2 border-[#18A67D] rotate-45 transition-transform group-hover:rotate-90 duration-300"></div>
               </div>
               <span className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#0F2A43] whitespace-nowrap">
-                Rabnix <span className="text-[#18A67D]">Estate</span>
+                Bay<span className="text-[#18A67D]">Bayt</span>
               </span>
             </div>
 
@@ -553,7 +553,7 @@ export function Navbar({
               }}
               className="w-full flex items-center justify-between p-2.5 bg-[#0F2A43] text-white rounded-lg font-bold text-xs uppercase tracking-wider"
             >
-              <span>Ask Rabnix Genie AI Assistant</span>
+              <span>Ask BayBayt Genie AI Assistant</span>
               <Sparkles className="w-4 h-4 text-[#22C39A]" />
             </button>
             {isAuthenticated && (user?.role === 'builder' || user?.role === 'admin') && (

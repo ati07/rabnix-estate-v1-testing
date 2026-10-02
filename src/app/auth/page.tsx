@@ -40,7 +40,7 @@ function AuthPageContent() {
               <div className="w-3.5 h-3.5 border-2 border-[#18A67D] rotate-45"></div>
             </div>
             <span className="text-xl sm:text-2xl font-extrabold tracking-tight text-[#0F2A43]">
-              Rabnix <span className="text-[#18A67D]">Estate</span>
+              Bay<span className="text-[#18A67D]">Bayt</span>
             </span>
           </Link>
 
@@ -89,7 +89,7 @@ function AuthPageContent() {
                 },
                 {
                   icon: TrendingUp,
-                  title: 'Rabnix AI Price Trends & Forecasts',
+                  title: 'BayBayt AI Price Trends & Forecasts',
                   desc: 'AI algorithms estimate genuine fair market rates, rental yields, and 5-year appreciation.'
                 }
               ].map((item, idx) => {
@@ -142,7 +142,7 @@ function AuthPageContent() {
       {/* Simple Footer */}
       <footer className="w-full border-t border-[#E2E8F0] bg-white py-4 px-4 text-center text-xs text-[#64748B]">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>&copy; {new Date().getFullYear()} Rabnix Estate Technologies India Pvt Ltd. All rights reserved.</span>
+          <span>&copy; {new Date().getFullYear()} BayBayt Technologies India Pvt Ltd. All rights reserved.</span>
           <div className="flex items-center gap-4 text-xs font-medium">
             <Link href="/" className="hover:text-[#18A67D]">Home</Link>
             <span className="text-slate-300">•</span>
@@ -161,7 +161,7 @@ function AuthPageContent() {
 
 export default function AuthPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-sm font-bold text-[#0F2A43]">Loading Rabnix Estate Authentication...</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-sm font-bold text-[#0F2A43]">Loading BayBayt Authentication...</div>}>
       <AuthPageContent />
     </Suspense>
   );

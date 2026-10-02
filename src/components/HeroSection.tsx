@@ -213,7 +213,7 @@ export function HeroSection({
               className="text-xs font-bold text-[#0E7C5D] hover:text-[#18A67D] flex items-center gap-1 cursor-pointer bg-[#E7F6F1] px-2.5 py-1 rounded-lg"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Try Rabnix AI Property Valuer</span>
+              <span>Try BayBayt AI Property Valuer</span>
             </button>
           </div>
 

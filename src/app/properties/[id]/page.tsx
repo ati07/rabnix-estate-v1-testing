@@ -68,14 +68,14 @@ export default function PropertyDetailsPage({ params }: { params: Promise<{ id: 
   useEffect(() => {
     if (!property || property.id !== propertyId) return;
     if (typeof window === 'undefined') return;
-    const seenKey = `rabnix_viewed_${propertyId}`;
+    const seenKey = `baybayt_viewed_${propertyId}`;
     if (sessionStorage.getItem(seenKey)) return;
     sessionStorage.setItem(seenKey, '1');
 
-    let visitorKey = localStorage.getItem('rabnix_visitor_key');
+    let visitorKey = localStorage.getItem('baybayt_visitor_key');
     if (!visitorKey) {
       visitorKey = (crypto.randomUUID?.() ?? `v_${Date.now()}_${Math.random().toString(36).slice(2)}`);
-      localStorage.setItem('rabnix_visitor_key', visitorKey);
+      localStorage.setItem('baybayt_visitor_key', visitorKey);
     }
 
     fetch(`/api/properties/${propertyId}/view`, {
@@ -166,7 +166,7 @@ export default function PropertyDetailsPage({ params }: { params: Promise<{ id: 
                 <div className="w-3 h-3 border-2 border-[#18A67D] rotate-45"></div>
               </div>
               <span className="text-lg font-extrabold tracking-tight text-[#0F2A43]">
-                Rabnix <span className="text-[#18A67D]">Estate</span>
+                Bay<span className="text-[#18A67D]">Bayt</span>
               </span>
             </Link>
           </div>
@@ -414,7 +414,7 @@ export default function PropertyDetailsPage({ params }: { params: Promise<{ id: 
                   <h2 className="text-lg font-bold text-[#0F2A43]">Verified Title & Legal Clearance</h2>
                 </div>
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#E7F6F1] text-[#0E7C5D]">
-                  Checked by Rabnix Legal
+                  Checked by BayBayt Legal
                 </span>
               </div>
 
@@ -730,7 +730,7 @@ export default function PropertyDetailsPage({ params }: { params: Promise<{ id: 
       {/* Footer */}
       <footer className="w-full border-t border-[#E2E8F0] bg-white py-4 px-4 text-center text-xs text-[#64748B] mt-8">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>&copy; {new Date().getFullYear()} Rabnix Estate. Verified Real Estate Platform.</span>
+          <span>&copy; {new Date().getFullYear()} BayBayt. Verified Real Estate Platform.</span>
           <div className="flex items-center gap-4 text-xs font-medium">
             <Link href="/" className="hover:text-[#18A67D]">Home</Link>
             <span className="text-slate-300">•</span>

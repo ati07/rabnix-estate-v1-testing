@@ -1,4 +1,4 @@
-# Rabnix Estate — Feature Inventory & Test Plan
+# BayBayt — Feature Inventory & Test Plan
 
 > Generated 2026-09-21. This is the master checklist of everything built so far and how
 > to verify it. Status legend: ⬜ not tested · ✅ pass · ❌ fail · ⚠️ partial/blocked.
@@ -11,7 +11,7 @@ Re-run of the property/inquiry lifecycle with a *real registered user*: **12/12 
 
 ### 🐞 BUG-1 (real, needs fix) — demo/seeded accounts can't create properties
 - **Symptom:** `POST /api/properties` → **500** for any account logged in via the demo
-  credentials (`owner@rabnix.com`, `admin@rabnixestate.com`, etc.).
+  credentials (`owner@baybayt.com`, `admin@baybayt.com`, etc.).
 - **Cause:** `login/route.ts:21-29` resolves seeded demo emails through
   `DEMO_FALLBACK_USERS`, which returns synthetic IDs (`demo-owner`, …). Those IDs are
   **not real `User` rows**, so `postedByUserId: 'demo-owner'` violates
@@ -51,18 +51,18 @@ flags so admins can push an approved listing into the curated home rails.
 
 ## Stack under test
 - Next.js 15 (App Router) + React 19 + TypeScript
-- PostgreSQL + Prisma v6, JWT auth (`jose`) in httpOnly cookie `rabnix_session`
+- PostgreSQL + Prisma v6, JWT auth (`jose`) in httpOnly cookie `baybayt_session`
 - Google Gemini for AI advisor + valuation (optional `GEMINI_API_KEY`)
 - Image upload to local `public/uploads`
 
 ## Test users (seeded)
 | Role   | Email                     | Password    |
 |--------|---------------------------|-------------|
-| admin  | admin@rabnixestate.com    | admin123    |
-| owner  | owner@rabnix.com          | password123 |
-| buyer  | buyer@rabnix.com          | password123 |
-| agent  | agent@rabnix.com          | password123 |
-| builder| builder@rabnix.com        | password123 |
+| admin  | admin@baybayt.com    | admin123    |
+| owner  | owner@baybayt.com          | password123 |
+| buyer  | buyer@baybayt.com          | password123 |
+| agent  | agent@baybayt.com          | password123 |
+| builder| builder@baybayt.com        | password123 |
 
 > Note: these also work as **demo fallback** users even if the DB is down/unseeded.
 
@@ -210,6 +210,6 @@ Routes: `src/app/api/{builders,projects,agents,collections,localities}/*`
 ---
 
 ## How to run these tests
-1. **API level (fastest):** with dev server up, hit endpoints with `curl`/PowerShell `Invoke-RestMethod`, chaining the `rabnix_session` cookie from login. Covers §1–§8.
+1. **API level (fastest):** with dev server up, hit endpoints with `curl`/PowerShell `Invoke-RestMethod`, chaining the `baybayt_session` cookie from login. Covers §1–§8.
 2. **UI level:** click through pages in §9 in a browser, or use the `/verify` skill.
 3. **Static level (no DB needed):** `npm run build` for §0.5 to catch type/compile errors across every route and page.

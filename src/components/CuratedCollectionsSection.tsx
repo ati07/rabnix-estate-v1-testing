@@ -40,7 +40,7 @@ export function CuratedCollectionsSection({ cityName, onApplyPreset }: CuratedCo
           <div>
             <div className="flex items-center gap-1.5 text-xs font-bold text-[#18A67D] uppercase tracking-wider">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Handpicked by Rabnix Estate</span>
+              <span>Handpicked by BayBayt</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-bold text-[#0F2A43] tracking-tight mt-1">
               Curated Property Collections in {cityName}

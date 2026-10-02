@@ -64,7 +64,7 @@ function AgentsDirectoryContent() {
                 <div className="w-3.5 h-3.5 border-2 border-[#18A67D] rotate-45"></div>
               </div>
               <span className="text-xl font-extrabold tracking-tight text-[#0F2A43]">
-                Rabnix <span className="text-[#18A67D]">Estate</span>
+                Bay<span className="text-[#18A67D]">Bayt</span>
               </span>
             </Link>
           </div>
@@ -102,7 +102,7 @@ function AgentsDirectoryContent() {
           <div className="flex items-center gap-2 text-xs text-slate-300 font-medium">
             <Link href="/" className="hover:text-white transition-colors">Home</Link>
             <ChevronRight className="w-3 h-3 text-slate-400" />
-            <span className="text-[#22C39A] font-bold">Rabnix Preferred Agents</span>
+            <span className="text-[#22C39A] font-bold">BayBayt Preferred Agents</span>
           </div>
 
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -112,7 +112,7 @@ function AgentsDirectoryContent() {
                 <span>Verified Agent Directory</span>
               </div>
               <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
-                Rabnix Preferred Agents
+                BayBayt Preferred Agents
               </h1>
               <p className="text-sm text-slate-300 leading-relaxed">
                 Connect directly with RERA-verified property experts. Every preferred agent is vetted for track record, responsiveness, and transparent dealing.
@@ -212,7 +212,7 @@ function AgentsDirectoryContent() {
                     </div>
                     <div className="min-w-0">
                       <div className="text-[10px] font-bold text-[#0E7C5D] uppercase tracking-wider">
-                        {agent.badge || 'Rabnix Preferred'}
+                        {agent.badge || 'BayBayt Preferred'}
                       </div>
                       <h3 className="text-sm font-bold text-[#0F2A43] truncate group-hover:text-[#18A67D] transition-colors">
                         {agent.name}
@@ -282,7 +282,7 @@ function AgentsDirectoryContent() {
       {/* Footer */}
       <footer className="w-full border-t border-[#E2E8F0] bg-white py-4 px-4 text-center text-xs text-[#64748B]">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>&copy; {new Date().getFullYear()} Rabnix Estate. Preferred Agents Directory.</span>
+          <span>&copy; {new Date().getFullYear()} BayBayt. Preferred Agents Directory.</span>
           <div className="flex items-center gap-4 text-xs font-medium">
             <Link href="/" className="hover:text-[#18A67D]">Home</Link>
             <span className="text-slate-300">•</span>

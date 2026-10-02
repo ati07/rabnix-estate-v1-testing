@@ -14,7 +14,7 @@ export const INDIAN_CITIES = [
 
 export const MOCK_PROPERTIES: Property[] = [
   {
-    id: 'rabnix-blr-101',
+    id: 'baybayt-blr-101',
     title: 'Prestige Lakeside Habitat Luxury 3 BHK',
     tagline: 'Lake-facing premium high-rise apartment with panoramic skyline views',
     propertyType: 'apartment',
@@ -78,7 +78,7 @@ export const MOCK_PROPERTIES: Property[] = [
     }
   },
   {
-    id: 'rabnix-mum-202',
+    id: 'baybayt-mum-202',
     title: 'Sea-View Seawoods Grand Central 2 BHK',
     tagline: 'Ultra-modern transit-oriented residence directly connected to station & mall',
     propertyType: 'apartment',
@@ -139,7 +139,7 @@ export const MOCK_PROPERTIES: Property[] = [
     }
   },
   {
-    id: 'rabnix-hyd-303',
+    id: 'baybayt-hyd-303',
     title: 'My Home Bhooja 4 BHK Signature Sky Villa',
     tagline: 'Palatial 4000 sq ft luxury residence in the heart of HITEC City',
     propertyType: 'villa',
@@ -200,7 +200,7 @@ export const MOCK_PROPERTIES: Property[] = [
     }
   },
   {
-    id: 'rabnix-del-404',
+    id: 'baybayt-del-404',
     title: 'DLF The Crest 3 BHK Golf Course Road',
     tagline: 'Ultra-exclusive residential address with private elevator and club',
     propertyType: 'apartment',
@@ -258,7 +258,7 @@ export const MOCK_PROPERTIES: Property[] = [
     }
   },
   {
-    id: 'rabnix-pun-505',
+    id: 'baybayt-pun-505',
     title: 'Kharadi EON Free Zone 2 BHK Gated Society',
     tagline: 'Modern tech-corridor apartment with zero brokerage fee direct from owner',
     propertyType: 'apartment',
@@ -316,7 +316,7 @@ export const MOCK_PROPERTIES: Property[] = [
     }
   },
   {
-    id: 'rabnix-com-606',
+    id: 'baybayt-com-606',
     title: 'Grade-A Commercial IT Office Space in BKC',
     tagline: 'Fully plug-and-play furnished commercial space in Bandra Kurla Complex',
     propertyType: 'commercial',
@@ -374,7 +374,7 @@ export const MOCK_PROPERTIES: Property[] = [
     }
   },
   {
-    id: 'rabnix-pg-707',
+    id: 'baybayt-pg-707',
     title: 'Zolo Stays Premium Co-Living / PG Koramangala',
     tagline: 'Private & twin sharing suites with daily housekeeping, meals, and 200 Mbps Wi-Fi',
     propertyType: 'pg_coliving',
@@ -429,7 +429,7 @@ export const MOCK_PROPERTIES: Property[] = [
     }
   },
   {
-    id: 'rabnix-np-808',
+    id: 'baybayt-np-808',
     title: 'Godrej Woodsman Estate Phase 2 (New Launch)',
     tagline: 'Forest-themed 2, 3 & 4 BHK apartments with 80% open green landscapes',
     propertyType: 'apartment',

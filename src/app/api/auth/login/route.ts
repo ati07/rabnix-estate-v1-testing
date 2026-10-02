@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
       if (user.isBlocked) {
         return NextResponse.json({
           success: false,
-          error: `Your account has been suspended by Rabnix Admin. Reason: ${user.blockedReason || 'Policy violation. Contact support.'}`,
+          error: `Your account has been suspended by BayBayt Admin. Reason: ${user.blockedReason || 'Policy violation. Contact support.'}`,
         }, { status: 403 });
       }
 

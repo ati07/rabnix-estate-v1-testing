@@ -70,7 +70,7 @@ export function Footer({
                 <div className="w-2.5 h-2.5 bg-white rounded-xs transform -rotate-45" />
               </div>
               <span className="font-extrabold text-base tracking-tight text-white uppercase">
-                Rabnix <span className="text-[#22C39A]">Estate</span>
+                Bay<span className="text-[#22C39A]">Bayt</span>
               </span>
             </div>
             <p className="text-slate-300 leading-relaxed max-w-sm text-xs">
@@ -78,7 +78,7 @@ export function Footer({
             </p>
             <div className="pt-2 text-slate-400 space-y-1 text-xs">
               <div>Customer Care: 1800-41-99099 (Toll Free)</div>
-              <div>Email: support@rabnix.com</div>
+              <div>Email: support@baybayt.com</div>
             </div>
           </div>
 
@@ -182,7 +182,7 @@ export function Footer({
       <div className="bg-[#091a2a] py-5 px-4 sm:px-8 border-t border-[#163b5c] text-[11px] text-slate-400">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
           <div>
-            © {new Date().getFullYear()} Rabnix Estate Realty Services Ltd. All rights reserved.
+            © {new Date().getFullYear()} BayBayt Realty Services Ltd. All rights reserved.
           </div>
           <div className="flex items-center gap-4">
             <span className="hover:text-white cursor-pointer">Privacy Policy</span>

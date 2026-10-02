@@ -25,11 +25,11 @@ cp .env.example .env
 
 | Variable | Purpose | Example |
 |----------|---------|---------|
-| `DATABASE_URL` | Postgres connection string used by Prisma | `postgres://postgres:password@localhost:5432/rabnix_estate` |
+| `DATABASE_URL` | Postgres connection string used by Prisma | `postgres://postgres:password@localhost:5432/baybayt_estate` |
 | `JWT_SECRET` | Secret for signing session JWTs (HS256) | generate: `openssl rand -hex 32` |
 | `GEMINI_API_KEY` | *(optional)* Google Gemini key for the AI advisor | — |
 
-Make sure the database named in `DATABASE_URL` exists (e.g. `createdb rabnix_estate`).
+Make sure the database named in `DATABASE_URL` exists (e.g. `createdb baybayt_estate`).
 
 ## 3. Migrate the database
 

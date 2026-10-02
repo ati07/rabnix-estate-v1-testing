@@ -58,16 +58,16 @@ export function TopProjectsSection({
 
   return (
     <section className="max-w-6xl w-full mx-auto px-4 sm:px-8 py-6">
-      {/* Section Header with rabnixHomes badge */}
+      {/* Section Header with baybaytHomes badge */}
       <div className="flex items-end justify-between mb-5">
         <div>
           <div className="flex items-center gap-2.5">
             <h2 className="text-xl sm:text-2xl font-bold text-[#0F2A43] tracking-tight">
               Top Projects
             </h2>
-            {/* rabnixHomes badge like magicHomes */}
+            {/* baybaytHomes badge like magicHomes */}
             <span className="inline-flex items-center gap-1 bg-[#FFF1F2] border border-[#FECDD3] text-[#E11D48] text-[10px] font-bold px-2 py-0.5 rounded shadow-2xs">
-              <span className="text-[#0F2A43]">rabnix</span>
+              <span className="text-[#0F2A43]">baybayt</span>
               <span className="text-[#E11D48]">Homes</span>
             </span>
           </div>

@@ -460,7 +460,7 @@ export default function AdminPortalPage() {
               </div>
               <div className="flex flex-col">
                 <span className="text-lg font-black tracking-tight text-white leading-none">
-                  Rabnix <span className="text-[#18A67D]">Admin Command Suite</span>
+                  BayBayt <span className="text-[#18A67D]">Admin Command Suite</span>
                 </span>
                 <span className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase mt-0.5 hidden sm:inline">
                   Platform Moderation & Trust Engine
@@ -540,7 +540,7 @@ export default function AdminPortalPage() {
               <div className="font-extrabold text-xs text-white truncate flex items-center gap-1">
                 <span>{user?.name || 'Platform Admin'}</span>
               </div>
-              <div className="text-[10px] text-slate-300 truncate">{user?.email || 'admin@rabnixestate.in'}</div>
+              <div className="text-[10px] text-slate-300 truncate">{user?.email || 'admin@baybayt.in'}</div>
               <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider bg-[#18A67D]/20 text-[#22C39A] border border-[#18A67D]/30">
                 <ShieldCheck className="w-2.5 h-2.5" />
                 ADMIN
@@ -797,7 +797,7 @@ export default function AdminPortalPage() {
                     </span>
                   </div>
                   <h1 className="text-xl sm:text-2xl font-black tracking-tight">
-                    Welcome to Rabnix Admin Command Suite
+                    Welcome to BayBayt Admin Command Suite
                   </h1>
                   <p className="text-xs text-slate-300 max-w-xl">
                     Real-time oversight over RERA compliance audits, seller identity verifications, user moderation, and transaction analytics.
@@ -1807,7 +1807,7 @@ export default function AdminPortalPage() {
               <Award className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
               <span>
                 Agents are real accounts (users with the <strong>Agent</strong> role) who manage their own marketing profile.
-                Here you decide who is featured as a <strong>Rabnix Preferred Agent</strong> on the public
+                Here you decide who is featured as a <strong>BayBayt Preferred Agent</strong> on the public
                 {' '}<Link href="/agents" className="underline font-bold">/agents</Link> directory and homepage, and you set the
                 editorial <strong>badge</strong> and <strong>rating</strong>. Promoted agents appear instantly. Listing counts are
                 computed live from each agent&apos;s approved properties.
@@ -1872,7 +1872,7 @@ export default function AdminPortalPage() {
                               </div>
                               <div>
                                 <div className="font-bold text-[#0F2A43]">{a.name}</div>
-                                <div className="text-[11px] text-[#64748B]">{a.isPreferredAgent ? (a.agentBadge || 'Rabnix Preferred') : a.email}</div>
+                                <div className="text-[11px] text-[#64748B]">{a.isPreferredAgent ? (a.agentBadge || 'BayBayt Preferred') : a.email}</div>
                               </div>
                             </div>
                           </td>
@@ -2241,7 +2241,7 @@ export default function AdminPortalPage() {
                       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(activityLogs, null, 2));
                       const downloadAnchor = document.createElement('a');
                       downloadAnchor.setAttribute("href", dataStr);
-                      downloadAnchor.setAttribute("download", `rabnix_audit_logs_${new Date().toISOString().slice(0,10)}.json`);
+                      downloadAnchor.setAttribute("download", `baybayt_audit_logs_${new Date().toISOString().slice(0,10)}.json`);
                       document.body.appendChild(downloadAnchor);
                       downloadAnchor.click();
                       downloadAnchor.remove();
@@ -2534,7 +2534,7 @@ export default function AdminPortalPage() {
       {/* Admin Footer */}
       <footer className="w-full border-t border-[#E2E8F0] bg-white py-4 px-4 text-center text-xs text-[#64748B]">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>&copy; {new Date().getFullYear()} Rabnix Estate Admin Verification & Moderation Suite.</span>
+          <span>&copy; {new Date().getFullYear()} BayBayt Admin Verification & Moderation Suite.</span>
           <div className="flex items-center gap-4 text-xs font-medium">
             <Link href="/" className="hover:text-[#18A67D]">Home</Link>
             <span className="text-slate-300">•</span>
@@ -2854,7 +2854,7 @@ function AgentFormModal({
             <div className="flex items-center gap-2 text-teal-900">
               <Award className="w-4 h-4 text-teal-600" />
               <div>
-                <div className="text-xs font-extrabold">Feature as Rabnix Preferred Agent</div>
+                <div className="text-xs font-extrabold">Feature as BayBayt Preferred Agent</div>
                 <div className="text-[10px] font-medium text-teal-700">Shows this agent on the public /agents directory & homepage.</div>
               </div>
             </div>
@@ -2864,7 +2864,7 @@ function AgentFormModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className={labelCls}>Badge <span className="text-[#94A3B8] normal-case">(editorial)</span></label>
-              <input type="text" value={agentBadge} onChange={(e) => setAgentBadge(e.target.value)} placeholder="Rabnix Preferred" className={inputCls} />
+              <input type="text" value={agentBadge} onChange={(e) => setAgentBadge(e.target.value)} placeholder="BayBayt Preferred" className={inputCls} />
             </div>
             <div className="space-y-1.5">
               <label className={labelCls}>Rating <span className="text-[#94A3B8] normal-case">(editorial)</span></label>

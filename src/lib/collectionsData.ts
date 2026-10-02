@@ -64,7 +64,7 @@ export const CURATED_COLLECTIONS: CuratedCollection[] = [
       },
       {
         title: 'Complimentary Legal Agreement Drafts',
-        description: 'Rabnix Estate provides standard stamp-paper and e-rental agreements for all direct deals.'
+        description: 'BayBayt provides standard stamp-paper and e-rental agreements for all direct deals.'
       }
     ],
     filters: {
@@ -75,7 +75,7 @@ export const CURATED_COLLECTIONS: CuratedCollection[] = [
     faqs: [
       {
         question: 'Are all properties in this collection really 100% zero brokerage?',
-        answer: 'Yes! Every property in this collection is listed directly by the individual owner or legal titleholder. Rabnix Estate does not charge any brokerage from buyers or tenants.'
+        answer: 'Yes! Every property in this collection is listed directly by the individual owner or legal titleholder. BayBayt does not charge any brokerage from buyers or tenants.'
       },
       {
         question: 'How do I contact the property owner?',
@@ -168,7 +168,7 @@ export const CURATED_COLLECTIONS: CuratedCollection[] = [
     recommendedCities: ['Mumbai', 'Delhi / NCR', 'Bangalore', 'Hyderabad', 'Goa'],
     faqs: [
       {
-        question: 'Does Rabnix Estate provide private confidential showings?',
+        question: 'Does BayBayt provide private confidential showings?',
         answer: 'Yes, our Luxury Portfolio Managers provide discreet, NDA-protected private viewing sessions and dedicated legal consultation.'
       }
     ]

@@ -1,4 +1,4 @@
-// Lightweight API test runner. Tracks the rabnix_session cookie per "session".
+// Lightweight API test runner. Tracks the baybayt_session cookie per "session".
 const BASE = process.env.BASE || 'http://localhost:3000';
 let pass = 0, fail = 0;
 const results = [];
@@ -21,7 +21,7 @@ async function req(sess, method, path, { body, form } = {}) {
   const res = await fetch(BASE + path, { method, headers, body: payload, redirect: 'manual' });
   const setCookie = res.headers.get('set-cookie');
   if (setCookie && sess) {
-    const m = setCookie.match(/rabnix_session=[^;]*/);
+    const m = setCookie.match(/baybayt_session=[^;]*/);
     if (m) sess.cookie = m[0];
   }
   let data = null;
@@ -42,19 +42,19 @@ async function main() {
 
   // ---------- 1. AUTH ----------
   {
-    const r = await login(admin, 'admin@rabnixestate.com', 'admin123');
+    const r = await login(admin, 'admin@baybayt.com', 'admin123');
     rec('1.5a', r.status === 200 && r.data?.success && r.data?.user?.role === 'admin', `admin login -> ${r.status} role=${r.data?.user?.role}`);
   }
   {
-    const r = await login(buyer, 'buyer@rabnix.com', 'password123');
+    const r = await login(buyer, 'buyer@baybayt.com', 'password123');
     rec('1.3', r.status === 200 && r.data?.user?.role === 'buyer', `buyer login -> ${r.status} role=${r.data?.user?.role}`);
   }
   {
-    const r = await login(owner, 'owner@rabnix.com', 'password123');
+    const r = await login(owner, 'owner@baybayt.com', 'password123');
     rec('1.5b', r.status === 200 && r.data?.user?.role === 'owner', `owner login -> ${r.status}`);
   }
   {
-    const r = await login(newSession(), 'buyer@rabnix.com', 'wrongpass');
+    const r = await login(newSession(), 'buyer@baybayt.com', 'wrongpass');
     rec('1.6', r.status === 401, `wrong password -> ${r.status} (expect 401)`);
   }
   {

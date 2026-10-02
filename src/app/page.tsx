@@ -33,7 +33,7 @@ import { ExclusiveOwnerPropertiesSection } from '@/components/home/ExclusiveOwne
 import { FreshPropertiesSection } from '@/components/home/FreshPropertiesSection';
 import { Footer } from '@/components/Footer';
 
-const CITY_STORAGE_KEY = 'rabnix_selected_city';
+const CITY_STORAGE_KEY = 'baybayt_selected_city';
 
 export default function HomeView() {
   const router = useRouter();
@@ -259,7 +259,7 @@ export default function HomeView() {
         }}
       />
 
-      {/* 6. RABNIX PREFERRED AGENTS IN [CITY] (Reference Screenshot 3) */}
+      {/* 6. BAYBAYT PREFERRED AGENTS IN [CITY] (Reference Screenshot 3) */}
       <PreferredAgentsSection
         cityName={selectedCity.name}
         onContactAgent={(agent) => {
@@ -267,7 +267,7 @@ export default function HomeView() {
         }}
       />
 
-      {/* 7. TOP PROJECTS [rabnixHomes] (Reference Screenshot 4) */}
+      {/* 7. TOP PROJECTS [baybaytHomes] (Reference Screenshot 4) */}
       <TopProjectsSection
         cityName={selectedCity.name}
         onSelectProject={(project) => {
@@ -345,7 +345,7 @@ export default function HomeView() {
         </div>
         <div className="hidden sm:block text-left">
           <div className="text-xs font-bold flex items-center gap-1">
-            <span>Rabnix Genie AI</span>
+            <span>BayBayt Genie AI</span>
             <span className="bg-[#18A67D] text-white text-[9px] font-bold px-1 rounded uppercase">Live</span>
           </div>
           <div className="text-[10px] text-slate-300">
@@ -392,7 +392,7 @@ export default function HomeView() {
         defaultCity={selectedCity.name}
       />
 
-      {/* 5. Rabnix Genie Chat Drawer */}
+      {/* 5. BayBayt Genie Chat Drawer */}
       <AiGenieChatDrawer
         isOpen={isGenieDrawerOpen}
         onClose={() => setIsGenieDrawerOpen(false)}

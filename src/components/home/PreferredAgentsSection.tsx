@@ -65,7 +65,7 @@ export function PreferredAgentsSection({
       <div className="flex items-end justify-between mb-5">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-[#0F2A43] tracking-tight">
-            Rabnix Preferred Agents in {cityName}
+            BayBayt Preferred Agents in {cityName}
           </h2>
           {/* Teal accent underline as in reference image */}
           <div className="w-12 h-1 bg-[#18A67D] rounded-full mt-1.5" />
@@ -117,7 +117,7 @@ export function PreferredAgentsSection({
                   </div>
                   <div className="min-w-0">
                     <div className="text-[10px] font-bold text-[#0E7C5D] uppercase tracking-wider flex items-center gap-1">
-                      <span>Rabnix Preferred</span>
+                      <span>BayBayt Preferred</span>
                     </div>
                     <h3 className="text-xs sm:text-sm font-bold text-[#0F2A43] truncate group-hover/card:text-[#18A67D] transition-colors">
                       {agent.name}

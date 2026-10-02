@@ -142,7 +142,7 @@ export function AiValuationCalculator() {
           <div className="space-y-1">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-[#22C39A] text-xs font-bold border border-white/15">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Rabnix AI Valuation Engine 2026</span>
+              <span>BayBayt AI Valuation Engine 2026</span>
             </div>
             <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight">
               Instant AI Fair Market Property Valuation

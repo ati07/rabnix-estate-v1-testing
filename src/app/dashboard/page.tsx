@@ -453,7 +453,7 @@ export default function UserDashboardPage() {
         amount: orderData.order.amount,
         currency: orderData.order.currency,
         order_id: orderData.order.id,
-        name: 'Rabnix Estate',
+        name: 'BayBayt',
         description: `${orderData.plan?.name} plan — ${orderData.plan?.listings} listings`,
         prefill: orderData.prefill,
         theme: { color: '#18A67D' },
@@ -700,7 +700,7 @@ export default function UserDashboardPage() {
     updateVerificationStatus(prop.id, 'approved');
     logActivity({
       action: 'property_verified',
-      actorName: user?.name || 'Rabnix Master Admin',
+      actorName: user?.name || 'BayBayt Master Admin',
       actorRole: 'Admin',
       details: `RERA & Document Verification Approved for "${prop.title}" in ${prop.locality}, ${prop.city}`,
       targetTitle: prop.title,
@@ -713,7 +713,7 @@ export default function UserDashboardPage() {
     updateVerificationStatus(prop.id, 'under_review');
     logActivity({
       action: 'property_created',
-      actorName: user?.name || 'Rabnix Master Admin',
+      actorName: user?.name || 'BayBayt Master Admin',
       actorRole: 'Admin',
       details: `Dispatched field surveyor for physical document validation: "${prop.title}"`,
       targetTitle: prop.title,
@@ -732,7 +732,7 @@ export default function UserDashboardPage() {
     updateVerificationStatus(rejectModalProperty.id, 'rejected', rejectFeedbackText);
     logActivity({
       action: 'property_rejected',
-      actorName: user?.name || 'Rabnix Master Admin',
+      actorName: user?.name || 'BayBayt Master Admin',
       actorRole: 'Admin',
       details: `Rejected listing "${rejectModalProperty.title}". Reason: ${rejectFeedbackText}`,
       targetTitle: rejectModalProperty.title,
@@ -945,7 +945,7 @@ export default function UserDashboardPage() {
                 <div className="w-3.5 h-3.5 border-2 border-[#18A67D] rotate-45"></div>
               </div>
               <span className="text-xl font-extrabold tracking-tight text-[#0F2A43]">
-                Rabnix <span className="text-[#18A67D]">Estate</span>
+                Bay<span className="text-[#18A67D]">Bayt</span>
               </span>
             </Link>
             <Link href="/" className="text-xs font-bold text-[#64748B] hover:text-[#0F2A43]">
@@ -1014,7 +1014,7 @@ export default function UserDashboardPage() {
                 <div className="w-3.5 h-3.5 border-2 border-[#18A67D] rotate-45"></div>
               </div>
               <span className="text-xl font-extrabold tracking-tight text-[#0F2A43]">
-                Rabnix <span className="text-[#18A67D]">Estate</span>
+                Bay<span className="text-[#18A67D]">Bayt</span>
               </span>
             </Link>
             
@@ -2596,7 +2596,7 @@ export default function UserDashboardPage() {
                         <Award className="w-4 h-4 text-[#18A67D] shrink-0 mt-0.5" />
                         <span>
                           This is your public <strong>Agent Directory</strong> profile. Your{' '}
-                          <strong>Preferred Agent</strong> status, badge and star rating are set by the Rabnix team.
+                          <strong>Preferred Agent</strong> status, badge and star rating are set by the BayBayt team.
                           Your live listing counts are computed automatically from your approved properties.
                         </span>
                       </div>

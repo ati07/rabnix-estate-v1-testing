@@ -4,11 +4,11 @@ const BASE = process.env.BASE || 'http://localhost:3000';
 let pass = 0, fail = 0; const fails = [];
 function rec(id, ok, detail){ if(ok)pass++;else{fail++;fails.push(id);} console.log(`${ok?'PASS':'FAIL'}  ${id.padEnd(6)} ${detail}`);}
 function S(){return{cookie:''};}
-async function req(s,m,p,{body}={}){const h={};if(s?.cookie)h.cookie=s.cookie;let pl;if(body!==undefined){h['content-type']='application/json';pl=JSON.stringify(body);}const r=await fetch(BASE+p,{method:m,headers:h,body:pl,redirect:'manual'});const sc=r.headers.get('set-cookie');if(sc&&s){const mm=sc.match(/rabnix_session=[^;]*/);if(mm)s.cookie=mm[0];}let d;const t=await r.text();try{d=JSON.parse(t);}catch{d=t;}return{status:r.status,data:d};}
+async function req(s,m,p,{body}={}){const h={};if(s?.cookie)h.cookie=s.cookie;let pl;if(body!==undefined){h['content-type']='application/json';pl=JSON.stringify(body);}const r=await fetch(BASE+p,{method:m,headers:h,body:pl,redirect:'manual'});const sc=r.headers.get('set-cookie');if(sc&&s){const mm=sc.match(/baybayt_session=[^;]*/);if(mm)s.cookie=mm[0];}let d;const t=await r.text();try{d=JSON.parse(t);}catch{d=t;}return{status:r.status,data:d};}
 
 async function main(){
   const admin=S(), realOwner=S(), realBuyer=S();
-  await req(admin,'POST','/api/auth/login',{body:{emailOrPhone:'admin@rabnixestate.com',password:'admin123'}});
+  await req(admin,'POST','/api/auth/login',{body:{emailOrPhone:'admin@baybayt.com',password:'admin123'}});
   const oEmail=`owner_${Date.now()}@ex.com`, bEmail=`buyer_${Date.now()}@ex.com`;
   await req(realOwner,'POST','/api/auth/register',{body:{name:'Real Owner',email:oEmail,phone:'9800011111',password:'secret123',role:'owner'}});
   await req(realBuyer,'POST','/api/auth/register',{body:{name:'Real Buyer',email:bEmail,phone:'9800022222',password:'secret123',role:'buyer'}});

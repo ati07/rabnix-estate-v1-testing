@@ -2,11 +2,11 @@
 // NOT in public feed -> login admin -> approve -> confirm LIVE in public feed & home rail.
 const BASE = process.env.BASE || 'http://localhost:3000';
 function S(){return{cookie:''};}
-async function req(s,m,p,{body}={}){const h={};if(s?.cookie)h.cookie=s.cookie;let pl;if(body!==undefined){h['content-type']='application/json';pl=JSON.stringify(body);}const r=await fetch(BASE+p,{method:m,headers:h,body:pl,redirect:'manual'});const sc=r.headers.get('set-cookie');if(sc&&s){const mm=sc.match(/rabnix_session=[^;]*/);if(mm)s.cookie=mm[0];}let d;const t=await r.text();try{d=JSON.parse(t);}catch{d=t;}return{status:r.status,data:d};}
+async function req(s,m,p,{body}={}){const h={};if(s?.cookie)h.cookie=s.cookie;let pl;if(body!==undefined){h['content-type']='application/json';pl=JSON.stringify(body);}const r=await fetch(BASE+p,{method:m,headers:h,body:pl,redirect:'manual'});const sc=r.headers.get('set-cookie');if(sc&&s){const mm=sc.match(/baybayt_session=[^;]*/);if(mm)s.cookie=mm[0];}let d;const t=await r.text();try{d=JSON.parse(t);}catch{d=t;}return{status:r.status,data:d};}
 const log=(...a)=>console.log(...a);
 
 const owner=S(), admin=S(), guest=S();
-const email=`realowner_${Date.now()}@rabnix.test`, pass='secret123';
+const email=`realowner_${Date.now()}@baybayt.test`, pass='secret123';
 
 log('\n=== STEP 1: Register a REAL owner ===');
 let r=await req(owner,'POST','/api/auth/register',{body:{name:'Ananya Rao',email,phone:'9845012345',password:pass,role:'owner',city:'Bangalore'}});
@@ -33,7 +33,7 @@ let ownerSees=r.data?.properties?.some(p=>p.id===pid);
 log(`   OWNER public feed contains own pending listing? ${ownerSees}  (expected: true — sees own pending)`);
 
 log('\n=== STEP 4: Login as ADMIN, find it in the review queue, APPROVE ===');
-r=await req(admin,'POST','/api/auth/login',{body:{emailOrPhone:'admin@rabnixestate.com',password:'admin123'}});
+r=await req(admin,'POST','/api/auth/login',{body:{emailOrPhone:'admin@baybayt.com',password:'admin123'}});
 log(`   admin login -> ${r.status}`);
 r=await req(admin,'GET','/api/properties?scope=all');
 const pending=r.data?.properties?.find(p=>p.id===pid);

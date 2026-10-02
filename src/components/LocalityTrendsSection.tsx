@@ -32,7 +32,7 @@ export function LocalityTrendsSection({
           <div>
             <div className="flex items-center gap-2 text-[11px] font-bold text-[#18A67D] uppercase tracking-wider">
               <TrendingUp className="w-3.5 h-3.5" />
-              <span>Rabnix Estate Market Intelligence</span>
+              <span>BayBayt Market Intelligence</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-bold text-[#0F2A43] tracking-tight mt-0.5">
               Price Trends & Rental Yields in {selectedCity.name}

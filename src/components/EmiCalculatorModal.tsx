@@ -51,7 +51,7 @@ export function EmiCalculatorModal({
         <div className="bg-[#0F2A43] text-white px-6 py-4 flex items-center justify-between border-b border-[#163b5c] shrink-0">
           <div className="flex items-center gap-2">
             <div className="bg-[#18A67D] text-white text-xs font-black px-2 py-0.5 rounded-xs">
-              Rabnix Estate
+              BayBayt
             </div>
             <h2 className="text-sm font-bold flex items-center gap-1.5 text-white">
               <Calculator className="w-4 h-4 text-[#22C39A]" />

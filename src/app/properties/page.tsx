@@ -506,7 +506,7 @@ function PropertiesCatalogContent() {
                 <div className="w-3.5 h-3.5 border-2 border-[#18A67D] rotate-45"></div>
               </div>
               <span className="text-xl font-extrabold tracking-tight text-[#0F2A43]">
-                Rabnix <span className="text-[#18A67D]">Estate</span>
+                Bay<span className="text-[#18A67D]">Bayt</span>
               </span>
             </Link>
           </div>
@@ -893,7 +893,7 @@ function PropertiesCatalogContent() {
       {/* Footer */}
       <footer className="w-full border-t border-[#E2E8F0] bg-white py-4 px-4 text-center text-xs text-[#64748B] mt-8">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>&copy; {new Date().getFullYear()} Rabnix Estate. Verified Catalog.</span>
+          <span>&copy; {new Date().getFullYear()} BayBayt. Verified Catalog.</span>
           <div className="flex items-center gap-4 text-xs font-medium">
             <Link href="/" className="hover:text-[#18A67D]">Home</Link>
             <span className="text-slate-300">•</span>

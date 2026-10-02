@@ -21,7 +21,7 @@ the working prototype before new work began.
 
 - **`src/lib/auth.ts`** (`server-only`) — `hashPassword`/`verifyPassword` (bcrypt),
   `createSessionToken`/`verifySessionToken` (jose HS256, 7-day), `setSessionCookie`/`clearSessionCookie`
-  (cookie `rabnix_session`), `getCurrentUser`, `toPublicProfile` (strips password hash).
+  (cookie `baybayt_session`), `getCurrentUser`, `toPublicProfile` (strips password hash).
 - Uses `JWT_SECRET` from the environment.
 
 ## 3. API routes (new) — `src/app/api/`

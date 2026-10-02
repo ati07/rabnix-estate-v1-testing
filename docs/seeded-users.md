@@ -10,17 +10,17 @@ Passwords are stored **bcrypt-hashed** in the database; the plaintext below is o
 
 | Role | Name | Email | Password | Phone | City |
 |------|------|-------|----------|-------|------|
-| **admin** | Rabnix Master Admin | `admin@rabnixestate.com` | `admin123` | +91 80000 99099 | National (HQ) |
-| **owner** | Priya Venkatesh | `owner@rabnix.com` | `password123` | +91 98450 11223 | Bangalore |
-| **buyer** | Rahul Sharma | `buyer@rabnix.com` | `password123` | +91 98765 43210 | Bangalore |
-| **agent** | Vikram Deshmukh | `agent@rabnix.com` | `password123` | +91 98200 99887 | Mumbai |
-| **builder** | Amit Singhal | `builder@rabnix.com` | `password123` | +91 99110 55443 | Delhi / NCR |
+| **admin** | BayBayt Master Admin | `admin@baybayt.com` | `admin123` | +91 80000 99099 | National (HQ) |
+| **owner** | Priya Venkatesh | `owner@baybayt.com` | `password123` | +91 98450 11223 | Bangalore |
+| **buyer** | Rahul Sharma | `buyer@baybayt.com` | `password123` | +91 98765 43210 | Bangalore |
+| **agent** | Vikram Deshmukh | `agent@baybayt.com` | `password123` | +91 98200 99887 | Mumbai |
+| **builder** | Amit Singhal | `builder@baybayt.com` | `password123` | +91 99110 55443 | Delhi / NCR |
 
 ### Extra profile fields on some accounts
 
 | Role | Company | RERA number |
 |------|---------|-------------|
-| admin | Rabnix Estate Verification Division | — |
+| admin | BayBayt Verification Division | — |
 | agent | Prestige Realty Advisors | PRM/KA/RERA/1251/310/AG/210412/00189 |
 | builder | Godrej Properties Ltd | DLRERA2019P0004 |
 

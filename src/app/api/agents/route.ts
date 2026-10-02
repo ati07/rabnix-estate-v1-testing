@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 // Rent-side listing types; everything else counts as "for sale".
 const RENT_TYPES = new Set(['rent', 'pg']);
 
-// GET /api/agents — the public "Rabnix Preferred Agents" directory.
+// GET /api/agents — the public "BayBayt Preferred Agents" directory.
 // These are Users with role='agent' and isPreferredAgent=true. Their listing
 // counts are computed live from their approved properties. Falls back to the
 // static catalogue when the DB is empty or unreachable.

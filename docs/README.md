@@ -1,6 +1,6 @@
-# Rabnix Estate — Documentation
+# BayBayt — Documentation
 
-This folder documents how Rabnix Estate was transformed from an AI Studio mock/prototype
+This folder documents how BayBayt was transformed from an AI Studio mock/prototype
 into a **real, working application** with authentication, a database, user property uploads,
 and admin verification.
 
@@ -20,4 +20,4 @@ and admin verification.
 
 - **Stack:** Next.js 15 (App Router) · Custom Node API (route handlers) · PostgreSQL · Prisma v6 · JWT auth (`jose`) · bcrypt.
 - **Run it:** `npm run db:migrate` → `npm run db:seed` → `npm run dev`.
-- **Log in:** see [seeded-users.md](./seeded-users.md) — e.g. `admin@rabnixestate.com` / `admin123`.
+- **Log in:** see [seeded-users.md](./seeded-users.md) — e.g. `admin@baybayt.com` / `admin123`.

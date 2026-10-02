@@ -27,7 +27,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, initialMode = 'signin' }
               <div className="-rotate-45">R</div>
             </div>
             <div>
-              <h2 className="text-base font-extrabold tracking-tight">Rabnix Estate Account</h2>
+              <h2 className="text-base font-extrabold tracking-tight">BayBayt Account</h2>
               <p className="text-[11px] text-slate-300">Access shortlisted homes, direct owner contacts & price alerts</p>
             </div>
           </div>

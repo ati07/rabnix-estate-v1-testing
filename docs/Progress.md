@@ -1,4 +1,4 @@
-# Rabnix Estate — Progress Log
+# BayBayt — Progress Log
 
 _Last updated: 2026-09-25_
 
@@ -14,7 +14,7 @@ on any area see the companion docs: [what-was-built.md](./what-was-built.md),
 ## Where the project stands
 
 - **Stack:** Next.js 15 (App Router) · React 19 · TypeScript 5.9 · Prisma v6 · PostgreSQL · Tailwind.
-- **Auth:** cookie-based session (`rabnix_session`, httpOnly JWT via jose), bcrypt password hashing.
+- **Auth:** cookie-based session (`baybayt_session`, httpOnly JWT via jose), bcrypt password hashing.
 - **Data:** everything the UI shows is now backed by the database — no mock data paths on the
   primary flows. Static seed data survives only as a graceful fallback when the DB is empty.
 - **Build health:** `npx tsc --noEmit` and `npm run build` both pass clean.
@@ -66,7 +66,7 @@ on any area see the companion docs: [what-was-built.md](./what-was-built.md),
 - Blank enquiry form that reveals the seller's contact only after submit.
 - **Billing:** Razorpay listing plans with quota enforcement (credit-pack model; active packs stack;
   free-tier allowance; enforced in `POST /api/properties`; dev bypass). See
-  [rabnix-billing-plans] in project memory.
+  [baybayt-billing-plans] in project memory.
 - Dashboard fixed to show only listings the account actually owns.
 
 ### Phase 5 — Directory & home wiring

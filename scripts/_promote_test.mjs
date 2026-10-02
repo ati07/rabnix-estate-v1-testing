@@ -4,11 +4,11 @@ const BASE = process.env.BASE || 'http://localhost:3000';
 const PID = process.env.PID; // pass the property id
 const OWNER_EMAIL = process.env.OWNER_EMAIL, OWNER_PASS = process.env.OWNER_PASS || 'secret123';
 function S(){return{cookie:''};}
-async function req(s,m,p,{body}={}){const h={};if(s?.cookie)h.cookie=s.cookie;let pl;if(body!==undefined){h['content-type']='application/json';pl=JSON.stringify(body);}const r=await fetch(BASE+p,{method:m,headers:h,body:pl,redirect:'manual'});const sc=r.headers.get('set-cookie');if(sc&&s){const mm=sc.match(/rabnix_session=[^;]*/);if(mm)s.cookie=mm[0];}let d;const t=await r.text();try{d=JSON.parse(t);}catch{d=t;}return{status:r.status,data:d};}
+async function req(s,m,p,{body}={}){const h={};if(s?.cookie)h.cookie=s.cookie;let pl;if(body!==undefined){h['content-type']='application/json';pl=JSON.stringify(body);}const r=await fetch(BASE+p,{method:m,headers:h,body:pl,redirect:'manual'});const sc=r.headers.get('set-cookie');if(sc&&s){const mm=sc.match(/baybayt_session=[^;]*/);if(mm)s.cookie=mm[0];}let d;const t=await r.text();try{d=JSON.parse(t);}catch{d=t;}return{status:r.status,data:d};}
 let pass=0,fail=0; const rec=(id,ok,d)=>{ok?pass++:fail++;console.log(`${ok?'PASS':'FAIL'}  ${id.padEnd(7)} ${d}`);};
 
 const owner=S(), admin=S(), guest=S();
-await req(admin,'POST','/api/auth/login',{body:{emailOrPhone:'admin@rabnixestate.com',password:'admin123'}});
+await req(admin,'POST','/api/auth/login',{body:{emailOrPhone:'admin@baybayt.com',password:'admin123'}});
 await req(owner,'POST','/api/auth/login',{body:{emailOrPhone:OWNER_EMAIL,password:OWNER_PASS}});
 
 // A) owner cannot self-promote
