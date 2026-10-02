@@ -96,6 +96,7 @@ export default function PostProjectPage() {
   const [pricePerSqFt, setPricePerSqFt] = useState('');
   const [reraNumber, setReraNumber] = useState('');
   const [possessionDate, setPossessionDate] = useState('Dec 2027');
+  const [launchDate, setLaunchDate] = useState('');
   const [totalAreaAcres, setTotalAreaAcres] = useState('');
   const [totalTowers, setTotalTowers] = useState<number>(0);
   const [totalUnits, setTotalUnits] = useState<number>(0);
@@ -146,6 +147,7 @@ export default function PostProjectPage() {
         setPricePerSqFt(p.pricePerSqFt || '');
         setReraNumber(p.reraNumber || '');
         setPossessionDate(p.possessionDate || '');
+        setLaunchDate(p.launchDate || '');
         setTotalAreaAcres(p.totalAreaAcres || '');
         setTotalTowers(p.totalTowers || 0);
         setTotalUnits(p.totalUnits || 0);
@@ -235,6 +237,10 @@ export default function PostProjectPage() {
       setErrorMessage('Please add at least one project image');
       return;
     }
+    if (!description.trim()) {
+      setErrorMessage('Please add a project description so buyers know what makes this development stand out.');
+      return;
+    }
     setIsSubmitting(true);
     try {
       const priceFormatted = maxPrice > minPrice
@@ -258,6 +264,7 @@ export default function PostProjectPage() {
         status,
         reraNumber: reraNumber.trim() || undefined,
         possessionDate: possessionDate.trim() || undefined,
+        launchDate: launchDate.trim() || undefined,
         totalAreaAcres: totalAreaAcres.trim() || undefined,
         totalTowers: totalTowers > 0 ? totalTowers : undefined,
         totalUnits: totalUnits > 0 ? totalUnits : undefined,
@@ -544,10 +551,15 @@ export default function PostProjectPage() {
                       <div className="text-[11px] text-[#64748B]">Formatted: <strong>{formatPrice(maxPrice)}</strong></div>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-1.5">
                       <label className="block text-xs font-bold text-[#172033] uppercase">Price / sq.ft (Optional)</label>
                       <input type="text" value={pricePerSqFt} onChange={(e) => setPricePerSqFt(e.target.value)} placeholder="e.g. ₹8,500"
+                        className="w-full p-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-[#18A67D]" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-[#172033] uppercase">Launch Date (Optional)</label>
+                      <input type="text" value={launchDate} onChange={(e) => setLaunchDate(e.target.value)} placeholder="e.g. March 2024"
                         className="w-full p-2.5 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-sm font-medium outline-none focus:bg-white focus:border-[#18A67D]" />
                     </div>
                     <div className="space-y-1.5">
@@ -681,7 +693,7 @@ export default function PostProjectPage() {
                   </div>
 
                   <div className="space-y-1.5 pt-2">
-                    <label className="block text-xs font-bold text-[#172033] uppercase">Project Description</label>
+                    <label className="block text-xs font-bold text-[#172033] uppercase">Project Description *</label>
                     <textarea rows={4} value={description} onChange={(e) => setDescription(e.target.value)}
                       placeholder="Describe the development, its location advantages, and what makes it stand out..."
                       className="w-full p-3 bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl text-sm outline-none" />

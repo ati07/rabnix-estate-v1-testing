@@ -266,6 +266,16 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
                   <span className="font-bold text-[#0F2A43]">{project.possessionDate || project.status}</span>
                 </div>
 
+                {project.launchDate && (
+                  <div className="flex justify-between items-center py-1 border-b border-slate-100">
+                    <span className="text-[#64748B] flex items-center gap-1.5">
+                      <Calendar className="w-4 h-4 text-slate-400" />
+                      Launched
+                    </span>
+                    <span className="font-bold text-[#0F2A43]">{project.launchDate}</span>
+                  </div>
+                )}
+
                 <div className="flex justify-between items-center py-1 border-b border-slate-100">
                   <span className="text-[#64748B] flex items-center gap-1.5">
                     <Layers className="w-4 h-4 text-slate-400" />
