@@ -25,7 +25,6 @@ import { ExploreCategoriesSection } from '@/components/ExploreCategoriesSection'
 import { CuratedCollectionsSection } from '@/components/CuratedCollectionsSection';
 import { TopBuildersSection } from '@/components/TopBuildersSection';
 import { FeaturedProjectsSection } from '@/components/home/FeaturedProjectsSection';
-import { PopularOwnerPropertiesSection } from '@/components/home/PopularOwnerPropertiesSection';
 import { PreferredAgentsSection } from '@/components/home/PreferredAgentsSection';
 import { TopProjectsSection } from '@/components/home/TopProjectsSection';
 import { ExplorePopularLocalitiesSection } from '@/components/home/ExplorePopularLocalitiesSection';
@@ -257,15 +256,6 @@ export default function HomeView() {
         cityName={selectedCity.name}
         onSelectProject={(project) => {
           router.push(`/projects/${project.id}`);
-        }}
-      />
-
-      {/* 5. POPULAR OWNER PROPERTIES (Reference Screenshot 2) */}
-      <PopularOwnerPropertiesSection
-        cityName={selectedCity.name}
-        properties={properties}
-        onSelectProperty={(property) => {
-          router.push(`/properties/${property.id}`);
         }}
       />
 

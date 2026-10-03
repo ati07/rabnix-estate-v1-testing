@@ -176,6 +176,11 @@ env-driven SEO and auto city detection.
   add a real popularity sort, and/or de-duplicate the two rails.
 - `npx tsc --noEmit` passes clean for all of the above.
 
+**Owner rails de-duplicated (2026-10-03)**
+- Resolved the redundancy above: removed `PopularOwnerPropertiesSection` (the misnamed rail — no
+  popularity signal existed) and kept the single `ExclusiveOwnerPropertiesSection` ("Exclusive Owner
+  Properties in {city}"). One truthful, admin-curated owner rail; newest-first order is accurate for it.
+
 ---
 
 ## What is real vs. deferred
