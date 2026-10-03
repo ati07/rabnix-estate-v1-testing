@@ -296,6 +296,7 @@ export default function HomeView() {
       {/* 10. EXPLORE REAL ESTATE CATEGORIES (Visual Explorer) */}
       <ExploreCategoriesSection
         cityName={selectedCity.name}
+        properties={properties}
       />
 
       {/* 11. CURATED PROPERTY COLLECTIONS (Handpicked Portfolios) */}

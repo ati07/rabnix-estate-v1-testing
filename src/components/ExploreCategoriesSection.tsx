@@ -4,10 +4,11 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, Sparkles } from 'lucide-react';
-import { PropertyCategory, ListingType } from '@/lib/types';
+import { Property, PropertyCategory, ListingType } from '@/lib/types';
 
 interface ExploreCategoriesSectionProps {
   cityName: string;
+  properties: Property[];
   onSelectCategory?: (category: PropertyCategory, listingType?: ListingType) => void;
 }
 
@@ -17,12 +18,12 @@ interface CategoryCardItem {
   category: PropertyCategory;
   listingType: ListingType;
   subtitle: string;
-  count: string;
+  unit: string; // noun for the live count, e.g. "Properties" / "Plots" / "Beds"
   imageUrl: string;
   tag: string;
 }
 
-export function ExploreCategoriesSection({ cityName, onSelectCategory }: ExploreCategoriesSectionProps) {
+export function ExploreCategoriesSection({ cityName, properties, onSelectCategory }: ExploreCategoriesSectionProps) {
   const categories: CategoryCardItem[] = [
     {
       id: 'cat-apt',
@@ -30,7 +31,7 @@ export function ExploreCategoriesSection({ cityName, onSelectCategory }: Explore
       category: 'Apartment',
       listingType: 'buy',
       subtitle: 'Modern gated communities & high-rises',
-      count: '15,400+ Properties',
+      unit: 'Properties',
       imageUrl: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=800&q=80',
       tag: 'Most Popular'
     },
@@ -40,7 +41,7 @@ export function ExploreCategoriesSection({ cityName, onSelectCategory }: Explore
       category: 'Villa',
       listingType: 'buy',
       subtitle: 'Luxury private living with personal lawns',
-      count: '4,200+ Properties',
+      unit: 'Properties',
       imageUrl: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80',
       tag: 'Luxury Collection'
     },
@@ -50,7 +51,7 @@ export function ExploreCategoriesSection({ cityName, onSelectCategory }: Explore
       category: 'Residential Plot',
       listingType: 'plot',
       subtitle: 'RERA-approved gated layouts & farm lands',
-      count: '6,800+ Plots',
+      unit: 'Plots',
       imageUrl: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=800&q=80',
       tag: 'High Appreciation'
     },
@@ -60,7 +61,7 @@ export function ExploreCategoriesSection({ cityName, onSelectCategory }: Explore
       category: 'Commercial Office',
       listingType: 'commercial',
       subtitle: 'Grade-A tech parks, SCOs & retail shops',
-      count: '3,100+ Spaces',
+      unit: 'Spaces',
       imageUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=800&q=80',
       tag: 'High Yield'
     },
@@ -70,11 +71,28 @@ export function ExploreCategoriesSection({ cityName, onSelectCategory }: Explore
       category: 'PG / Co-Living',
       listingType: 'pg',
       subtitle: 'Fully furnished rooms with meals & WiFi',
-      count: '5,600+ Beds',
+      unit: 'Beds',
       imageUrl: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=800&q=80',
       tag: 'Zero Deposit'
     }
   ];
+
+  // Live inventory count per card for the active city. Keyed exactly the way the
+  // /properties destination filters (city + listingType + category) so the badge
+  // matches what the user lands on. Zero → the badge is hidden (no fake numbers).
+  const countsById = React.useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const item of categories) {
+      map[item.id] = properties.filter(
+        (p) =>
+          p.city.toLowerCase() === cityName.toLowerCase() &&
+          p.listingType === item.listingType &&
+          p.category.toLowerCase() === item.category.toLowerCase()
+      ).length;
+    }
+    return map;
+    // categories is rebuilt each render but is a stable literal; cityName/properties drive it.
+  }, [properties, cityName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <section className="w-full bg-white py-12 border-b border-[#E2E8F0]">
@@ -135,10 +153,15 @@ export function ExploreCategoriesSection({ cityName, onSelectCategory }: Explore
                     </span>
                   </div>
 
-                  {/* Property Count */}
-                  <div className="absolute bottom-2 left-2.5 right-2.5 text-white">
-                    <span className="text-xs font-bold">{item.count}</span>
-                  </div>
+                  {/* Live property count for this category in the active city.
+                      Hidden entirely when the city has none — no fabricated numbers. */}
+                  {countsById[item.id] > 0 && (
+                    <div className="absolute bottom-2 left-2.5 right-2.5 text-white">
+                      <span className="text-xs font-bold">
+                        {countsById[item.id].toLocaleString('en-IN')} {item.unit}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Content */}
