@@ -147,6 +147,7 @@ export function serializeFeaturedProject(p: DbFeaturedProject): FeaturedProjectI
     nearbyLandmarks: (p.nearbyLandmarks as unknown as ProjectNearby[]) ?? undefined,
     builderExperience: p.builderExperience ?? undefined,
     builderDeliveredProjects: p.builderDeliveredProjects ?? undefined,
+    section: p.section as FeaturedProjectItem['section'],
     submissionStatus: p.submissionStatus as FeaturedProjectItem['submissionStatus'],
     rejectionReason: p.rejectionReason ?? undefined,
     submittedByUserId: p.submittedByUserId ?? undefined,

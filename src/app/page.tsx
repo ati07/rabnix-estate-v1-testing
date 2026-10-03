@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { Property, SearchFilters, CityInfo, ListingType } from '@/lib/types';
 import { CITIES_DATA } from '@/lib/realEstateData';
-import { detectNearestCity } from '@/lib/geoCity';
+import { detectNearestCity, detectCityByIp } from '@/lib/geoCity';
 import { useProperties } from '@/lib/propertyContext';
 import { useAuth } from '@/lib/authContext';
 import { Navbar } from '@/components/Navbar';
@@ -100,7 +100,11 @@ export default function HomeView() {
     }
   };
 
-  // Resolve the active city on mount via geolocation if no saved preference
+  // Resolve the active city on mount if the user has no saved preference.
+  // Order: precise browser geolocation (needs permission) → permission-free
+  // IP geolocation (Vercel edge headers). The resolved city is persisted so it
+  // carries across every page (which all read the same localStorage key) and we
+  // don't re-prompt on subsequent visits.
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -108,16 +112,22 @@ export default function HomeView() {
     if (savedName) return;
 
     let cancelled = false;
-    detectNearestCity().then((city) => {
-      if (!cancelled && city) {
-        setSelectedCity(city);
-        setFilters((prev) => ({
-          ...prev,
-          city: city.name,
-          locality: ''
-        }));
-      }
-    });
+
+    const applyCity = (city: CityInfo | null): boolean => {
+      if (cancelled || !city) return false;
+      setSelectedCity(city);
+      setFilters((prev) => ({ ...prev, city: city.name, locality: '' }));
+      localStorage.setItem(CITY_STORAGE_KEY, city.name);
+      return true;
+    };
+
+    (async () => {
+      const gps = await detectNearestCity();
+      if (applyCity(gps)) return;
+      const ip = await detectCityByIp();
+      applyCity(ip);
+    })();
+
     return () => { cancelled = true; };
   }, []);
 

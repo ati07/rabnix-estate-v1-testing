@@ -49,6 +49,9 @@ export interface FeaturedProjectItem {
   nearbyLandmarks?: ProjectNearby[];
   builderExperience?: string;
   builderDeliveredProjects?: number;
+  // Home-section placement. Admin-curated: 'featured' → Featured Projects row,
+  // 'top' → Top Projects row. New builder submissions default to 'featured'.
+  section?: 'featured' | 'top';
   // Submission & moderation (builder-submitted projects). Curated catalog
   // entries are implicitly 'approved'.
   submissionStatus?: 'approved' | 'pending' | 'rejected' | 'under_review';

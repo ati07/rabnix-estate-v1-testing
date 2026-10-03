@@ -28,20 +28,18 @@ export function PopularOwnerPropertiesSection({
     }
   };
 
-  // Filter for direct owner properties in the selected city or general
-  const ownerProperties = React.useMemo(() => {
-    const cityOwners = properties.filter(
-      (p) => p.isExclusiveOwner && p.city.toLowerCase() === cityName.toLowerCase()
-    );
-    if (cityOwners.length >= 3) return cityOwners;
+  // Strictly direct-owner listings in the active city. No other-city mixing and
+  // no non-owner fallback — the "0% Brokerage / Owner Direct" badges must stay
+  // truthful. Empty → the section hides itself (see early return below).
+  const ownerProperties = React.useMemo(
+    () =>
+      properties.filter(
+        (p) => p.isExclusiveOwner && p.city.toLowerCase() === cityName.toLowerCase()
+      ),
+    [properties, cityName]
+  );
 
-    // Fallback: all owner listings or listings in that city
-    const allOwners = properties.filter((p) => p.isExclusiveOwner);
-    if (allOwners.length >= 3) return allOwners;
-
-    // Default to city properties
-    return properties.slice(0, 8);
-  }, [properties, cityName]);
+  if (ownerProperties.length === 0) return null;
 
   const handleScroll = (direction: 'left' | 'right') => {
     if (!scrollRef.current) return;

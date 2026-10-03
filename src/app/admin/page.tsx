@@ -148,6 +148,16 @@ export default function AdminPortalPage() {
     setProjects((prev) => prev.filter((p) => p.id !== id));
     await fetch(`/api/projects/${id}`, { method: 'DELETE', credentials: 'same-origin' }).catch(() => {});
   };
+
+  const updateProjectSection = async (id: string, section: 'featured' | 'top') => {
+    setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, section } : p)));
+    await fetch(`/api/projects/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ section }),
+    }).catch(() => {});
+  };
   const [selectedPropertyModal, setSelectedPropertyModal] = useState<Property | null>(null);
   const [rejectionModalProperty, setRejectionModalProperty] = useState<Property | null>(null);
   const [rejectionReason, setRejectionReason] = useState('State RERA certificate could not be verified on the official real estate regulatory portal.');
@@ -1451,6 +1461,21 @@ export default function AdminPortalPage() {
                               {!proj.submittedByUserId && (
                                 <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded text-slate-500 font-bold uppercase">Curated</span>
                               )}
+                              {/* Home-section placement toggle (admin curation) */}
+                              <span className="inline-flex items-center rounded-lg border border-[#E2E8F0] overflow-hidden text-[10px] font-bold uppercase tracking-wider">
+                                <button
+                                  onClick={() => { updateProjectSection(proj.id, 'featured'); showBanner(`"${proj.name}" set to Featured Projects.`); }}
+                                  className={`px-2 py-0.5 transition-colors cursor-pointer ${((proj.section || 'featured') === 'featured') ? 'bg-[#0F2A43] text-white' : 'bg-white text-[#64748B] hover:bg-[#F1F5F9]'}`}
+                                >
+                                  Featured
+                                </button>
+                                <button
+                                  onClick={() => { updateProjectSection(proj.id, 'top'); showBanner(`"${proj.name}" set to Top Projects.`); }}
+                                  className={`px-2 py-0.5 transition-colors cursor-pointer ${(proj.section === 'top') ? 'bg-[#E11D48] text-white' : 'bg-white text-[#64748B] hover:bg-[#F1F5F9]'}`}
+                                >
+                                  Top
+                                </button>
+                              </span>
                             </div>
                             <h3 className="text-sm sm:text-base font-bold text-[#0F2A43] mt-1">{proj.name}</h3>
                             <div className="flex flex-wrap items-center gap-2 text-xs text-[#64748B] mt-0.5">

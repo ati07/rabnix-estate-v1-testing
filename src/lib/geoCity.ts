@@ -65,3 +65,23 @@ export function detectNearestCity(): Promise<CityInfo | null> {
     );
   });
 }
+
+/**
+ * Permission-free fallback: ask the server to infer the city from the request
+ * IP (via Vercel edge geo headers). Resolves to `null` when no geo signal is
+ * available (e.g. local dev) or on any error. Used when browser geolocation is
+ * denied or unavailable.
+ */
+export async function detectCityByIp(): Promise<CityInfo | null> {
+  try {
+    const res = await fetch('/api/geo', { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data?.city) {
+      return CITIES_DATA.find((c) => c.name === data.city) || null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}

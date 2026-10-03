@@ -1,6 +1,6 @@
 # BayBayt — Progress Log
 
-_Last updated: 2026-09-25_
+_Last updated: 2026-10-03_
 
 A running record of everything built while turning the AI Studio prototype into a
 real, database-backed application being prepared for production. For deeper detail
@@ -120,6 +120,61 @@ real listings.
 **Production note:** seeded demo agents have no properties attributed to them, so their profiles show
 real (often empty) listings rather than fabricated ones — this is intentional. No demo data is
 injected to make counts look bigger.
+
+---
+
+### Phase — Home-section realism & auto-city (2026-10-03)
+
+A sweep to make the home page honest per-city and reduce "fake data" fallbacks, plus
+env-driven SEO and auto city detection.
+
+**SEO / metadata**
+- `src/app/layout.tsx` now sets `metadataBase` from the environment (`SITE_URL`, falling back to
+  `http://localhost:3000`) so OG/Twitter image paths resolve to absolute URLs in production.
+  Documented `SITE_URL` in `.env.example`. (Action for deploy: set `SITE_URL` on Vercel.)
+
+**Auto-select city by location**
+- New `GET /api/geo` (`src/app/api/geo/route.ts`): permission-free, IP-based city detection using
+  Vercel edge geo headers (`x-vercel-ip-latitude/-longitude`, then `x-vercel-ip-city`) → nearest
+  supported city. Returns `city: null` when there's no signal (e.g. localhost).
+- `src/lib/geoCity.ts`: added `detectCityByIp()` client helper.
+- `src/app/page.tsx` mount effect now resolves the active city as: **browser GPS → IP geolocation**,
+  and **persists** the result to `localStorage['baybayt_selected_city']` so it carries across every
+  page and doesn't re-prompt. Lucknow (and 8 other cities) are mapped in `geoCity.ts`.
+- Known limits: detection runs on the home page only (persisted result carries elsewhere); IP
+  fallback can't work on localhost (loopback); desktop GPS can be approximate.
+
+**Featured / Top Projects — admin-curated sections + strict city**
+- `FeaturedProjectItem` gained `section?: 'featured' | 'top'` (`homeSectionsData.ts`), carried through
+  `serializeFeaturedProject` (`serialize.ts`). The DB column already existed — no migration.
+- `PATCH /api/projects/[id]` accepts `section` as an **admin-only** change (validated). Admins can now
+  move an approved project between the **Featured** and **Top** home rails — so **Top Projects gets
+  real data** (previously every submission was hardcoded `section:'featured'`).
+- Admin panel (`src/app/admin/page.tsx`): per-project **Featured / Top** segmented toggle +
+  `updateProjectSection` handler (optimistic + toast).
+- `GET /api/projects` now accepts `?city=` and filters server-side on public reads, with a **per-city
+  static fallback**. `FeaturedProjectsSection` / `TopProjectsSection` fetch `?section=…&city=<city>`,
+  refetch on city change, **render only that city's projects (no cross-city mixing)**, and
+  `return null` when empty.
+
+**Owner-properties rails — truthful + strict city**
+- `PopularOwnerPropertiesSection` and `ExclusiveOwnerPropertiesSection` previously fell back to
+  other-city owners and then to `properties.slice(0,8)` — showing **non-owner** listings under the
+  "0% Brokerage / Owner Direct" badges. Both now filter **strictly** to
+  `isExclusiveOwner && city === activeCity` and `return null` when empty, so the owner badges stay
+  truthful.
+
+**Management-model notes (for follow-up — see memory `rabnix-home-sections-management`)**
+- **Owner rails are admin-curated, not automatic.** A listing appears only after an admin flips the
+  **Exclusive Owner** promotion toggle (`handleTogglePromotion`, `admin/page.tsx:355`); new
+  submissions default `isExclusiveOwner=false` (POST route omits it). The home rails key off
+  `isExclusiveOwner` only (not `postedBy.type==='Owner'`).
+- **"Popular" is a misnomer** — no popularity ranking exists; the rail is just owner-flagged listings
+  in `createdAt desc` order.
+- **The two owner rails are redundant** — both use the same `isExclusiveOwner` filter, so they render
+  the same set with different styling. Open question for later: auto-show real owner-posted listings,
+  add a real popularity sort, and/or de-duplicate the two rails.
+- `npx tsc --noEmit` passes clean for all of the above.
 
 ---
 

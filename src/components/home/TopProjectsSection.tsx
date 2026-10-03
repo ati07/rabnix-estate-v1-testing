@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, ChevronLeft, ChevronRight, MapPin, Sparkles, ShieldCheck } from 'lucide-react';
@@ -18,26 +18,24 @@ export function TopProjectsSection({
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Live top projects from the API; seed with static data for first paint + offline.
-  const [allProjects, setAllProjects] = useState<FeaturedProjectItem[]>(HOME_TOP_PROJECTS);
+  // Live, city-scoped top projects from the API. The server returns only this
+  // city's approved projects (or this city's static demo fallback when the DB
+  // has none), so there's no client-side city mixing. Seed with the static
+  // subset for the active city for first paint.
+  const [projects, setProjects] = useState<FeaturedProjectItem[]>(
+    () => HOME_TOP_PROJECTS.filter((p) => p.city.toLowerCase() === cityName.toLowerCase())
+  );
   useEffect(() => {
     let active = true;
-    fetch('/api/projects?section=top')
+    fetch(`/api/projects?section=top&city=${encodeURIComponent(cityName)}`)
       .then((r) => r.json())
-      .then((d) => { if (active && d?.success && Array.isArray(d.projects) && d.projects.length) setAllProjects(d.projects); })
+      .then((d) => { if (active && d?.success && Array.isArray(d.projects)) setProjects(d.projects); })
       .catch(() => { /* keep static fallback */ });
     return () => { active = false; };
-  }, []);
+  }, [cityName]);
 
-  // Filter projects by active city or fallback
-  const projects = React.useMemo(() => {
-    const citySpecific = allProjects.filter(
-      (p) => p.city.toLowerCase() === cityName.toLowerCase()
-    );
-    if (citySpecific.length >= 1) return citySpecific;
-
-    return allProjects;
-  }, [allProjects, cityName]);
+  // Nothing to show for this city → don't render the section at all.
+  if (projects.length === 0) return null;
 
   const handleScroll = (direction: 'left' | 'right') => {
     if (!scrollRef.current) return;

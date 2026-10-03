@@ -56,8 +56,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const b = (await req.json()) as Partial<FeaturedProjectItem> & {
       submissionStatus?: ProjectStatus;
       rejectionReason?: string;
+      section?: 'featured' | 'top';
     };
     const data: any = {};
+
+    // Home-section placement (Featured / Top): admin-only curation.
+    if (b.section !== undefined) {
+      if (!isAdmin) return NextResponse.json({ success: false, error: 'Only admins can change section placement.' }, { status: 403 });
+      if (b.section !== 'featured' && b.section !== 'top') {
+        return NextResponse.json({ success: false, error: 'Invalid section.' }, { status: 400 });
+      }
+      data.section = b.section;
+    }
 
     // Moderation changes: admin only.
     if (b.submissionStatus !== undefined) {

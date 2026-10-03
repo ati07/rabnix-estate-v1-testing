@@ -20,12 +20,14 @@ function makeProjectId(name: string): string {
 
 // GET /api/projects
 //   ?section=featured | top   -> only that home section (approved only)
+//   ?city=Lucknow             -> only projects in that city (public reads)
 //   ?mine=1                   -> only the current user's submissions (any status)
 //   ?scope=all                -> everything (admin only)
 //   (default)                 -> approved projects, plus the viewer's own submissions
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const section = searchParams.get('section');
+  const city = searchParams.get('city');
   const mine = searchParams.get('mine');
   const scope = searchParams.get('scope');
 
@@ -33,6 +35,9 @@ export async function GET(req: NextRequest) {
     const user = await getCurrentUser();
     const where: any = {};
     if (section) where.section = section;
+    // City filter applies to public reads (home sections pass it); admin/owner
+    // dashboards fetch everything and filter client-side.
+    if (city && mine !== '1' && scope !== 'all') where.city = city;
 
     if (mine === '1') {
       if (!user) return NextResponse.json({ success: false, error: 'Not authenticated' }, { status: 401 });
@@ -62,10 +67,12 @@ export async function GET(req: NextRequest) {
   }
 
   // Static fallback (curated data is implicitly approved) — only for public reads.
-  const projects: FeaturedProjectItem[] =
+  let projects: FeaturedProjectItem[] =
     section === 'featured' ? HOME_FEATURED_PROJECTS
     : section === 'top' ? HOME_TOP_PROJECTS
     : getAllProjects();
+  // Strict per-city fallback so a city shows only its own demo projects.
+  if (city) projects = projects.filter((p) => p.city.toLowerCase() === city.toLowerCase());
   return NextResponse.json({ success: true, projects });
 }
 

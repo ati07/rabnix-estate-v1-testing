@@ -28,18 +28,18 @@ export function ExclusiveOwnerPropertiesSection({
     }
   };
 
-  // Exclusive Owner properties
-  const ownerProperties = React.useMemo(() => {
-    const directCity = properties.filter(
-      (p) => p.isExclusiveOwner && p.city.toLowerCase() === cityName.toLowerCase()
-    );
-    if (directCity.length >= 3) return directCity;
+  // Strictly direct-owner listings in the active city. No other-city mixing and
+  // no non-owner fallback — the owner badges must stay truthful. Empty → the
+  // section hides itself (see early return below).
+  const ownerProperties = React.useMemo(
+    () =>
+      properties.filter(
+        (p) => p.isExclusiveOwner && p.city.toLowerCase() === cityName.toLowerCase()
+      ),
+    [properties, cityName]
+  );
 
-    const allOwners = properties.filter((p) => p.isExclusiveOwner);
-    if (allOwners.length >= 3) return allOwners;
-
-    return properties.slice(0, 8);
-  }, [properties, cityName]);
+  if (ownerProperties.length === 0) return null;
 
   const handleScroll = (direction: 'left' | 'right') => {
     if (!scrollRef.current) return;
