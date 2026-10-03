@@ -28,18 +28,18 @@ export function FreshPropertiesSection({
     }
   };
 
-  // Fresh / Newly added properties (sorted newest first or filtered by city)
-  const freshProperties = React.useMemo(() => {
-    const cityProps = properties.filter(
-      (p) => p.city.toLowerCase() === cityName.toLowerCase()
-    );
-    if (cityProps.length >= 3) {
-      return [...cityProps].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-    }
+  // Newly added listings in the active city, newest first. Strict city scope so
+  // the "in {cityName}" heading stays truthful — no cross-city mixing. Empty →
+  // the section hides itself (see early return below).
+  const freshProperties = React.useMemo(
+    () =>
+      properties
+        .filter((p) => p.city.toLowerCase() === cityName.toLowerCase())
+        .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')),
+    [properties, cityName]
+  );
 
-    // Fallback: mix with other fresh properties
-    return [...properties].sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).slice(0, 10);
-  }, [properties, cityName]);
+  if (freshProperties.length === 0) return null;
 
   const handleScroll = (direction: 'left' | 'right') => {
     if (!scrollRef.current) return;
