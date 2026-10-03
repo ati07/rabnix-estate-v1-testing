@@ -29,7 +29,7 @@ import {
   Clock,
   Send
 } from 'lucide-react';
-import { CURATED_COLLECTIONS, CuratedCollection } from '@/lib/collectionsData';
+import { CURATED_COLLECTIONS, CuratedCollection, collectionPriceRange } from '@/lib/collectionsData';
 import { CITIES_DATA } from '@/lib/realEstateData';
 import { useProperties } from '@/lib/propertyContext';
 import { useAuth } from '@/lib/authContext';
@@ -138,6 +138,9 @@ export default function SingleCollectionPage({ params }: { params: Promise<{ id:
     });
   }, [properties, collection, selectedCity, selectedBhk, minPrice, maxPrice, sortBy]);
 
+  // Real price band for the currently matched listings (null when none).
+  const priceRange = useMemo(() => collectionPriceRange(matchingProperties), [matchingProperties]);
+
   const handleSendInquiry = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inquiryPhone.trim()) return;
@@ -233,10 +236,12 @@ export default function SingleCollectionPage({ params }: { params: Promise<{ id:
 
             {/* Quick Metrics Badge */}
             <div className="bg-white/10 backdrop-blur-md p-5 rounded-2xl border border-white/20 space-y-3 shrink-0 lg:w-80">
-              <div className="flex items-center justify-between pb-3 border-b border-white/15">
-                <span className="text-xs text-slate-300 font-medium">Price Range:</span>
-                <span className="text-sm font-extrabold text-white">{collection.avgPriceRange}</span>
-              </div>
+              {priceRange && (
+                <div className="flex items-center justify-between pb-3 border-b border-white/15">
+                  <span className="text-xs text-slate-300 font-medium">Price Range:</span>
+                  <span className="text-sm font-extrabold text-white">{priceRange}</span>
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <span className="text-xs text-slate-300 font-medium">Available Units:</span>
                 <span className="text-xs font-bold text-amber-400">{matchingProperties.length} Properties</span>

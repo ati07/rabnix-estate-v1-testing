@@ -43,7 +43,7 @@ export function CuratedCollectionsSection({ cityName, onApplyPreset }: CuratedCo
               <span>Handpicked by BayBayt</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-bold text-[#0F2A43] tracking-tight mt-1">
-              Curated Property Collections in {cityName}
+              Curated Property Collections
             </h2>
           </div>
           <div className="flex items-center gap-3">

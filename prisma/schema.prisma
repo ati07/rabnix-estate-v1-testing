@@ -315,9 +315,6 @@ model Collection {
   heroImage         String
   badge             String
   actionText        String
-  avgPriceRange     String
-  avgYield          String
-  totalListingsText String
   overview          String
   keyHighlights     Json     // { title, description }[]
   filters           Json     // CuratedCollection["filters"]

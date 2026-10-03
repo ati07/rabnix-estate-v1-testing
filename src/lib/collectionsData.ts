@@ -1,3 +1,5 @@
+import type { Property } from './types';
+
 export interface CuratedCollection {
   id: string;
   title: string;
@@ -8,9 +10,6 @@ export interface CuratedCollection {
   heroImage: string;
   badge: string;
   actionText: string;
-  avgPriceRange: string;
-  avgYield: string;
-  totalListingsText: string;
   overview: string;
   keyHighlights: {
     title: string;
@@ -45,9 +44,6 @@ export const CURATED_COLLECTIONS: CuratedCollection[] = [
     heroImage: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1400&q=80',
     badge: '100% Owner Direct',
     actionText: 'View Owner Properties',
-    avgPriceRange: '₹35 Lac - ₹2.5 Cr',
-    avgYield: '100% Brokerage Savings (Avg ₹50K - ₹2.5L)',
-    totalListingsText: '12,400+ Direct Owner Properties',
     overview: 'Skip unnecessary broker fees and speak directly with genuine property owners across major Indian metros. Every listing in this collection has gone through owner identity verification, title document checks, and direct contact validation by our legal team.',
     keyHighlights: [
       {
@@ -93,9 +89,6 @@ export const CURATED_COLLECTIONS: CuratedCollection[] = [
     heroImage: 'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=1400&q=80',
     badge: 'OC Received & Approved',
     actionText: 'Explore Ready Homes',
-    avgPriceRange: '₹45 Lac - ₹6.5 Cr',
-    avgYield: '0 Waiting Time • Instant Rental Income',
-    totalListingsText: '8,950+ Ready Flats & Villas',
     overview: 'Eliminate construction delays and GST liabilities with fully completed, ready-to-move apartments and villas. All projects feature Occupancy Certificates (OC), physical power and water connections, and functional clubhouse amenities.',
     keyHighlights: [
       {
@@ -140,9 +133,6 @@ export const CURATED_COLLECTIONS: CuratedCollection[] = [
     heroImage: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1400&q=80',
     badge: 'Curated HNI Portfolios',
     actionText: 'View Luxury Portfolios',
-    avgPriceRange: '₹2.5 Cr - ₹45 Cr+',
-    avgYield: '14.8% YoY Capital Appreciation in Prime Belts',
-    totalListingsText: '1,820+ Signature Estates',
     overview: 'Discover architectural masterworks designed for elite connoisseurs. From sea-facing duplex penthouses in South Mumbai to sprawling lakefront villas in Bangalore and golf course estates in Gurgaon.',
     keyHighlights: [
       {
@@ -183,9 +173,6 @@ export const CURATED_COLLECTIONS: CuratedCollection[] = [
     heroImage: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=1400&q=80',
     badge: 'Affordable & High Growth',
     actionText: 'Browse Affordable Homes',
-    avgPriceRange: '₹18 Lac - ₹50 Lac',
-    avgYield: '8% - 10% High Rental Yield for First-time Buyers',
-    totalListingsText: '15,600+ Value Homes',
     overview: 'High-quality, affordable urban homes strategically located near upcoming metro corridors, industrial hubs, and IT clusters. Perfect for first-time home buyers and smart rental yield investors.',
     keyHighlights: [
       {
@@ -226,9 +213,6 @@ export const CURATED_COLLECTIONS: CuratedCollection[] = [
     heroImage: 'https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&w=1400&q=80',
     badge: 'Independent Living',
     actionText: 'Explore Luxury Villas',
-    avgPriceRange: '₹1.8 Cr - ₹12 Cr',
-    avgYield: '12% - 16% Land Appreciation',
-    totalListingsText: '2,400+ Independent Villas',
     overview: 'Enjoy the perfect blend of independent land ownership and secure 5-star gated community lifestyle. Sprawling layouts with private backyards, terrace sit-outs, and dedicated servant quarters.',
     keyHighlights: [
       {
@@ -269,9 +253,6 @@ export const CURATED_COLLECTIONS: CuratedCollection[] = [
     heroImage: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1400&q=80',
     badge: 'Pre-Leased & Bare Shell',
     actionText: 'Explore Commercial Spaces',
-    avgPriceRange: '₹85 Lac - ₹35 Cr',
-    avgYield: '8.5% - 11% Annual Rental Yield',
-    totalListingsText: '4,150+ Commercial Properties',
     overview: 'Generate superior passive rental income with Grade-A commercial office floors, tech-park spaces, and high-street retail showrooms pre-leased to Fortune 500 companies and leading Indian banks.',
     keyHighlights: [
       {
@@ -307,4 +288,37 @@ export const CURATED_COLLECTIONS: CuratedCollection[] = [
 
 export function getCollectionById(id: string): CuratedCollection | undefined {
   return CURATED_COLLECTIONS.find((c) => c.id === id);
+}
+
+// Does a property satisfy a collection's saved filter? Mirrors the server-side
+// whereFromFilters (api/collections/[id]) so client-side counts and price bands
+// match exactly what the collection detail page lists.
+export function matchesCollectionFilters(p: Property, f: CuratedCollection['filters']): boolean {
+  if (p.verificationStatus && p.verificationStatus !== 'approved') return false;
+  if (f.isOwnerOnly && p.postedBy?.type !== 'Owner' && !p.isExclusiveOwner) return false;
+  if (f.isVerifiedOnly && !p.isVerified) return false;
+  if (f.isReraApprovedOnly && !p.reraApproved) return false;
+  if (f.constructionStatus && p.constructionStatus !== f.constructionStatus) return false;
+  if (f.category && p.category.toLowerCase() !== f.category.toLowerCase()) return false;
+  if (f.listingType && p.listingType !== f.listingType) return false;
+  if (Array.isArray(f.bhk) && f.bhk.length && (p.bhk == null || !f.bhk.includes(p.bhk))) return false;
+  if (f.minPrice != null && p.price < f.minPrice) return false;
+  if (f.maxPrice != null && p.price > f.maxPrice) return false;
+  return true;
+}
+
+// Real price band for a set of matched listings, using each listing's own
+// formatted price. Returns null when there are no matches (caller hides it) so
+// we never show a fabricated range.
+export function collectionPriceRange(matched: Property[]): string | null {
+  if (matched.length === 0) return null;
+  let lo = matched[0];
+  let hi = matched[0];
+  for (const p of matched) {
+    if (p.price < lo.price) lo = p;
+    if (p.price > hi.price) hi = p;
+  }
+  return lo.priceFormatted === hi.priceFormatted
+    ? lo.priceFormatted
+    : `${lo.priceFormatted} - ${hi.priceFormatted}`;
 }

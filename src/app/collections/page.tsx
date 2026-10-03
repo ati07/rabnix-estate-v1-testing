@@ -23,7 +23,7 @@ import {
   PhoneCall,
   Check
 } from 'lucide-react';
-import { CURATED_COLLECTIONS, CuratedCollection } from '@/lib/collectionsData';
+import { CURATED_COLLECTIONS, CuratedCollection, matchesCollectionFilters, collectionPriceRange } from '@/lib/collectionsData';
 import { CITIES_DATA } from '@/lib/realEstateData';
 import { useProperties } from '@/lib/propertyContext';
 
@@ -159,7 +159,7 @@ function CollectionsHubContent() {
               </div>
               <div>
                 <span className="text-slate-400 block text-[10px] uppercase font-bold">Total Listings</span>
-                <span className="text-lg font-black text-[#22C39A]">{properties.length}+ Verified</span>
+                <span className="text-lg font-black text-[#22C39A]">{properties.length} Verified</span>
               </div>
               <div className="col-span-2 sm:col-span-1">
                 <span className="text-slate-400 block text-[10px] uppercase font-bold">Brokerage Savings</span>
@@ -229,6 +229,10 @@ function CollectionsHubContent() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredCollections.map((col) => {
             const Icon = ICON_MAP[col.iconName] || Sparkles;
+            // Live inventory for this collection (approved listings matching its
+            // filter) — replaces the old fabricated count / price strings.
+            const matched = properties.filter((p) => matchesCollectionFilters(p, col.filters));
+            const priceRange = collectionPriceRange(matched);
 
             return (
               <div
@@ -264,9 +268,11 @@ function CollectionsHubContent() {
                       <h3 className="text-lg font-bold group-hover:text-[#22C39A] transition-colors leading-tight">
                         {col.title}
                       </h3>
-                      <span className="text-[11px] text-slate-300 font-medium">
-                        {col.totalListingsText}
-                      </span>
+                      {matched.length > 0 && (
+                        <span className="text-[11px] text-slate-300 font-medium">
+                          {matched.length} {matched.length === 1 ? 'Property' : 'Properties'}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -276,13 +282,15 @@ function CollectionsHubContent() {
                       {col.subtitle}
                     </p>
 
-                    {/* Metrics Grid */}
-                    <div className="bg-[#F8FAFC] p-3 rounded-xl border border-[#E2E8F0] text-xs">
-                      <div>
-                        <span className="text-[10px] text-[#94A3B8] font-bold block uppercase">Price Bracket</span>
-                        <span className="font-extrabold text-[#0F2A43] text-xs">{col.avgPriceRange}</span>
+                    {/* Live price bracket from matching listings (hidden when none) */}
+                    {priceRange && (
+                      <div className="bg-[#F8FAFC] p-3 rounded-xl border border-[#E2E8F0] text-xs">
+                        <div>
+                          <span className="text-[10px] text-[#94A3B8] font-bold block uppercase">Price Bracket</span>
+                          <span className="font-extrabold text-[#0F2A43] text-xs">{priceRange}</span>
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Highlights bullet previews */}
                     <div className="space-y-1.5 pt-1">
